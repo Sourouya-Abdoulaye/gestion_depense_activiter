@@ -1,0 +1,25 @@
+# En-têtes HTTP personnalisés — Cloudflare Pages
+# Ce fichier est copié tel quel dans dist/ (dossier public/ de Vite) et lu par
+# Cloudflare Pages. Il remplace les [[headers]] de netlify.toml.
+
+# Fichiers produit par Vite dont le nom contient un hash -> contenu immuable.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Le service worker doit toujours être revalidé, sinon les visiteurs déjà venus
+# ne recevraient jamais une nouvelle version de l'application.
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# Coquille et manifeste : revalidation systématique (ils pointent vers les
+# fichiers hachés ci-dessus).
+/index.html
+  Cache-Control: no-cache
+
+/manifest.webmanifest
+  Cache-Control: no-cache
+
+# En-têtes de sécurité généraux.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
