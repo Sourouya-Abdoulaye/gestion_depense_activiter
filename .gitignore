@@ -1,0 +1,14 @@
+# Dépendances
+node_modules/
+
+# Sortie de build (Netlify la régénère)
+dist/
+
+# Fichiers Netlify locaux (créés par `netlify dev` / `netlify link`)
+.netlify/
+
+# Divers
+*.log
+.DS_Store
+.env
+.env.*

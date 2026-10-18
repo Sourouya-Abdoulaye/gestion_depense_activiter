@@ -1,0 +1,247 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+   Mon Commerce — design system
+   Palette imposée par le cahier des charges :
+   vert #15803D, vert foncé #166534, vert clair #DCFCE7, blanc #FFFFFF,
+   noir profond #111827, gris clair #F3F4F6, gris secondaire #6B7280,
+   rouge #DC2626 (erreurs), orange #D97706 (avertissements).
+--------------------------------------------------------------------------- */
+@theme {
+  --color-brand: #15803d;
+  --color-brand-dark: #166534;
+  --color-brand-light: #dcfce7;
+  --color-ink: #111827;
+  --color-canvas: #f3f4f6;
+  --color-muted: #6b7280;
+  --color-danger: #dc2626;
+  --color-warning: #d97706;
+  --color-line: #e5e7eb;
+
+  --font-sans:
+    'Inter', 'Segoe UI', 'Helvetica Neue', Arial, system-ui, sans-serif;
+
+  --radius-card: 0.875rem;
+
+  --shadow-card: 0 1px 2px 0 rgb(17 24 39 / 0.06), 0 1px 3px 0 rgb(17 24 39 / 0.08);
+  --shadow-float: 0 10px 30px -12px rgb(17 24 39 / 0.35);
+}
+
+/* ------------------------------- base ----------------------------------- */
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-canvas text-ink font-sans antialiased;
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply text-brand-dark font-semibold tracking-tight;
+  }
+
+  /* Focus clavier toujours visible (accessibilité). */
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* Neutralise les flèches des champs numériques pour un rendu sobre. */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  #app {
+    min-height: 100vh;
+  }
+}
+
+/* ---------------------------- composants -------------------------------- */
+
+/* Utilitaires personnalisés pouvant être réutilisés via @apply. */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold
+         transition-colors duration-150 select-none whitespace-nowrap
+         disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+@utility badge {
+  @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold;
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-card border border-line shadow-card;
+  }
+
+  .card-pad {
+    @apply p-4 sm:p-5;
+  }
+
+  .btn-primary {
+    @apply btn bg-brand text-white hover:bg-brand-dark;
+  }
+
+  .btn-dark {
+    @apply btn bg-ink text-white hover:bg-brand-dark;
+  }
+
+  .btn-ghost {
+    @apply btn bg-white text-ink border border-line hover:bg-brand-light hover:border-brand;
+  }
+
+  .btn-danger {
+    @apply btn bg-danger text-white hover:brightness-90;
+  }
+
+  .btn-warning {
+    @apply btn bg-warning text-white hover:brightness-90;
+  }
+
+  .btn-sm {
+    @apply px-2.5 py-1.5 text-xs;
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-line bg-white px-3 py-2 text-sm
+           placeholder:text-muted/70 focus:border-brand focus:ring-2 focus:ring-brand/25
+           focus:outline-none;
+  }
+
+  .label {
+    @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-muted;
+  }
+
+  .field-hint {
+    @apply mt-1 text-xs text-muted;
+  }
+
+  .field-error {
+    @apply mt-1 text-xs font-medium text-danger;
+  }
+
+  .badge-brand {
+    @apply badge bg-brand-light text-brand-dark;
+  }
+
+  .badge-neutral {
+    @apply badge bg-canvas text-muted;
+  }
+
+  .badge-danger {
+    @apply badge bg-red-50 text-danger;
+  }
+
+  .badge-warning {
+    @apply badge bg-amber-50 text-warning;
+  }
+
+  .table-wrap {
+    @apply w-full overflow-x-auto;
+  }
+
+  .table {
+    @apply w-full border-collapse text-sm;
+  }
+
+  .table thead th {
+    @apply border-b border-line px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted whitespace-nowrap;
+  }
+
+  .table tbody td {
+    @apply border-b border-line/70 px-3 py-2 align-middle;
+  }
+
+  .table tbody tr:hover {
+    @apply bg-brand-light/40;
+  }
+
+  .kpi-value {
+    @apply mt-1 text-xl font-bold text-ink tabular-nums sm:text-2xl;
+  }
+
+  .kpi-label {
+    @apply text-xs font-semibold uppercase tracking-wide text-muted;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-ink/80
+           hover:bg-brand-light hover:text-brand-dark;
+  }
+
+  .nav-link-active {
+    @apply bg-brand-dark text-white hover:bg-brand-dark hover:text-white;
+  }
+
+  .section-title {
+    @apply text-lg font-semibold text-brand-dark;
+  }
+}
+
+/* ------------------------------ utilitaires ----------------------------- */
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .no-print {
+    /* utilisé sur les barres d'action lors de l'impression des reçus */
+  }
+
+  .scroll-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scroll-thin::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 9999px;
+  }
+}
+
+/* overlay modal / toast */
+#modal-root[hidden],
+#toast-root[hidden] {
+  display: none;
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

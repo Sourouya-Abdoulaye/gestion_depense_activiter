@@ -1,0 +1,63 @@
+# ---------------------------------------------------------------------------
+# Configuration de déploiement Netlify — Mon Commerce
+# Documentation : https://docs.netlify.com/configure-builds/file-based-configuration/
+# ---------------------------------------------------------------------------
+
+[build]
+  # Commande exécutée par Netlify pour construire le site.
+  command = "npm run build"
+  # Dossier publié une fois le build terminé (celui produit par Vite).
+  publish = "dist"
+
+[build.environment]
+  # Vite 8 exige Node >= 20.19 / 22.12 : on force une version récente.
+  # (Sans cela, Netlify pourrait utiliser un Node trop ancien et le build échouerait.)
+  NODE_VERSION = "22"
+
+# ---------------------------------------------------------------------------
+# En-têtes de cache
+# ---------------------------------------------------------------------------
+
+# Les fichiers de dist/assets/ ont un nom contenant un hash (ex. index-BRzLCgzb.js)
+# : leur contenu ne change jamais pour un nom donné -> cache très long.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Le service worker doit TOUJOURS être revalidé, sinon une nouvelle version de
+# l'application ne serait jamais téléchargée par les visiteurs déjà venus.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+# index.html et le manifeste : revalidation systématique (ils pointent vers les
+# fichiers hachés ci-dessus, donc ils doivent rester à jour).
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "no-cache"
+    Content-Type = "application/manifest+json"
+
+# ---------------------------------------------------------------------------
+# En-têtes de sécurité (bonus, sans risque pour cette application 100 % locale)
+# ---------------------------------------------------------------------------
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# ---------------------------------------------------------------------------
+# Routage
+# ---------------------------------------------------------------------------
+# Aucune règle de redirection n'est nécessaire : l'application utilise un routage
+# par ancre (#/tableau-de-bord, #/ventes...), qui est entièrement géré par le
+# navigateur. Toutes les URLs réelles pointent donc vers "/" et jamais vers un
+# chemin inexistant — pas besoin du classique "/* -> /index.html 200".
