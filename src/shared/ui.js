@@ -125,7 +125,9 @@ export function openModal({ title, content, actions = [], size = 'md', onClose =
   panel.append(header);
 
   const body = element('<div class="px-5 py-4"></div>');
-  if (typeof content === 'string') body.append(fragment(content));
+  // Accepte indifféremment une chaîne HTML, un gabarit html`` (objet __html)
+  // ou un nœud DOM déjà construit.
+  if (typeof content === 'string' || (content && content.__html)) body.append(fragment(content));
   else if (content) body.append(content);
   panel.append(body);
 
@@ -315,7 +317,7 @@ export function sectionCard({ title = '', description = '', actions = [], conten
   const actionSlot = qs('header > div:last-child', node);
   if (actionSlot) for (const action of actions) actionSlot.append(action);
   const contentSlot = node.lastElementChild;
-  if (typeof content === 'string') contentSlot.append(fragment(content));
+  if (typeof content === 'string' || (content && content.__html)) contentSlot.append(fragment(content));
   else if (content) contentSlot.append(content);
   return node;
 }
