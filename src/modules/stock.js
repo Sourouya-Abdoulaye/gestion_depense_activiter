@@ -38,11 +38,11 @@ function productSheet(product, stockState, movements) {
     .map(
       (movement) => html`
         <tr>
-          <td class="whitespace-nowrap">${formatDate(movement.date)}</td>
-          <td>${STOCK_REASON_MAP[movement.reason]?.label || movement.reason}</td>
-          <td class="text-right ${toNumber(movement.quantity, 0) < 0 ? 'text-danger' : 'text-brand-dark'}">${formatQuantity(movement.quantity)}</td>
-          <td class="text-right">${movement.unitCost === null || movement.unitCost === undefined ? '—' : formatMoney(movement.unitCost)}</td>
-          <td class="text-muted">${movement.note || ''}</td>
+          <td data-label="Date" class="whitespace-nowrap">${formatDate(movement.date)}</td>
+          <td data-label="Motif">${STOCK_REASON_MAP[movement.reason]?.label || movement.reason}</td>
+          <td data-label="Quantité" class="text-right ${toNumber(movement.quantity, 0) < 0 ? 'text-danger' : 'text-brand-dark'}">${formatQuantity(movement.quantity)}</td>
+          <td data-label="Coût unitaire" class="text-right">${movement.unitCost === null || movement.unitCost === undefined ? '—' : formatMoney(movement.unitCost)}</td>
+          <td data-label="Note" class="text-muted">${movement.note || ''}</td>
         </tr>
       `,
     )
@@ -68,7 +68,7 @@ function productSheet(product, stockState, movements) {
           </div>
         </div>
         <div class="table-wrap">
-          <table class="table">
+          <table class="table table-stack">
             <thead>
               <tr><th>Date</th><th>Motif</th><th class="text-right">Quantité</th><th class="text-right">Coût unitaire</th><th>Note</th></tr>
             </thead>
@@ -160,7 +160,7 @@ function paint(ctx, api) {
       </header>
       <div class="card-pad">
         <div class="table-wrap">
-          <table class="table">
+          <table class="table table-stack">
             <thead>
               <tr>
                 <th>Date</th>
@@ -179,14 +179,14 @@ function paint(ctx, api) {
                     const product = products.find((entry) => entry.id === movement.productId);
                     return html`
                       <tr>
-                        <td class="whitespace-nowrap">${formatDate(movement.date)}</td>
-                        <td class="font-medium">${product ? product.name : 'Produit supprimé'}</td>
-                        <td>${directionBadge(movement)}</td>
-                        <td class="text-muted">${STOCK_REASON_MAP[movement.reason]?.label || movement.reason}</td>
-                        <td class="text-right tabular-nums font-semibold ${toNumber(movement.quantity, 0) < 0 ? 'text-danger' : 'text-brand-dark'}">
+                        <td data-label="Date" class="whitespace-nowrap">${formatDate(movement.date)}</td>
+                        <td data-label="Produit" class="font-medium">${product ? product.name : 'Produit supprimé'}</td>
+                        <td data-label="Sens">${directionBadge(movement)}</td>
+                        <td data-label="Motif" class="text-muted">${STOCK_REASON_MAP[movement.reason]?.label || movement.reason}</td>
+                        <td data-label="Quantité" class="text-right tabular-nums font-semibold ${toNumber(movement.quantity, 0) < 0 ? 'text-danger' : 'text-brand-dark'}">
                           ${formatQuantity(movement.quantity)}
                         </td>
-                        <td class="text-right tabular-nums">${movement.unitCost === null || movement.unitCost === undefined ? '—' : formatMoney(movement.unitCost)}</td>
+                        <td data-label="Coût unitaire" class="text-right tabular-nums">${movement.unitCost === null || movement.unitCost === undefined ? '—' : formatMoney(movement.unitCost)}</td>
                         <td class="text-right">
                           ${product
                             ? html`<button type="button" class="btn-ghost btn-sm" data-sheet="${product.id}" title="Voir la fiche produit">${raw(icon('box', { size: 14 }))}</button>`

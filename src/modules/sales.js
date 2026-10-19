@@ -189,7 +189,7 @@ function openSaleDetail(sale) {
         ${sale.cancelReason ? html`<p class="text-sm text-muted">Motif d’annulation : ${sale.cancelReason}</p>` : ''}
 
         <div class="table-wrap">
-          <table class="table">
+          <table class="table table-stack">
             <thead>
               <tr>
                 <th>Produit</th>
@@ -204,12 +204,12 @@ function openSaleDetail(sale) {
               ${(sale.lines || []).map(
                 (line) => html`
                   <tr>
-                    <td class="font-medium">${line.label}</td>
-                    <td class="text-right">${formatQuantity(line.quantity, line.unit)}</td>
-                    <td class="text-right">${formatMoney(line.unitPrice)}</td>
-                    <td class="text-right">${formatMoney(line.discount || 0)}</td>
-                    <td class="text-right font-semibold">${formatMoney(saleLineNet(line))}</td>
-                    <td class="text-right ${saleLineNet(line) - line.quantity * line.unitCost < 0 ? 'text-danger' : 'text-brand-dark'}">
+                    <td data-label="Produit" class="font-medium">${line.label}</td>
+                    <td data-label="Qté" class="text-right">${formatQuantity(line.quantity, line.unit)}</td>
+                    <td data-label="Prix unitaire" class="text-right">${formatMoney(line.unitPrice)}</td>
+                    <td data-label="Remise" class="text-right">${formatMoney(line.discount || 0)}</td>
+                    <td data-label="Total net" class="text-right font-semibold">${formatMoney(saleLineNet(line))}</td>
+                    <td data-label="Marge" class="text-right ${saleLineNet(line) - line.quantity * line.unitCost < 0 ? 'text-danger' : 'text-brand-dark'}">
                       ${formatMoney(saleLineNet(line) - line.quantity * line.unitCost)}
                     </td>
                   </tr>

@@ -251,11 +251,11 @@ function paint(ctx) {
       .map(
         (entry) => html`
           <tr>
-            <td class="font-medium">${entry.label}</td>
-            <td class="text-right">${formatQuantity(entry.quantity, entry.unit)}</td>
-            <td class="text-right">${formatMoney(entry.revenue)}</td>
-            <td class="text-right ${entry.margin < 0 ? 'text-danger' : 'text-brand-dark'}">${formatMoney(entry.margin)}</td>
-            <td class="text-right">${formatPercent(entry.marginRate)}</td>
+            <td data-label="Produit" class="font-medium">${entry.label}</td>
+            <td data-label="Quantité" class="text-right">${formatQuantity(entry.quantity, entry.unit)}</td>
+            <td data-label="Chiffre d’affaires" class="text-right">${formatMoney(entry.revenue)}</td>
+            <td data-label="Marge" class="text-right ${entry.margin < 0 ? 'text-danger' : 'text-brand-dark'}">${formatMoney(entry.margin)}</td>
+            <td data-label="Taux" class="text-right">${formatPercent(entry.marginRate)}</td>
           </tr>
         `,
       )
@@ -266,7 +266,7 @@ function paint(ctx) {
         description: 'Calculées sur les ventes enregistrées (coût figé au moment de la vente).',
         content: element(html`
           <div class="table-wrap">
-            <table class="table">
+            <table class="table table-stack">
               <thead>
                 <tr><th>Produit</th><th class="text-right">Quantité</th><th class="text-right">Chiffre d’affaires</th><th class="text-right">Marge</th><th class="text-right">Taux</th></tr>
               </thead>

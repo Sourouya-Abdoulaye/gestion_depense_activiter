@@ -82,7 +82,7 @@ function sectionTable(section) {
     title: section.title,
     content: element(html`
       <div class="table-wrap">
-        <table class="table">
+        <table class="table table-stack">
           <thead>
             <tr>
               ${section.columns.map(
@@ -92,7 +92,7 @@ function sectionTable(section) {
           </thead>
           <tbody>
             ${section.rows.map(
-              (row) => html`<tr>${row.map((cell, index) => html`<td class="${index > 0 ? 'text-right tabular-nums' : ''}">${cell}</td>`)}</tr>`,
+              (row) => html`<tr>${row.map((cell, index) => html`<td data-label="${section.columns[index] || ''}" class="${index > 0 ? 'text-right tabular-nums' : ''}">${cell}</td>`)}</tr>`,
             )}
           </tbody>
         </table>

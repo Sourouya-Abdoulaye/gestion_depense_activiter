@@ -102,6 +102,7 @@ Points à respecter :
 | **Rapports** | Synthèses datées, exports CSV, impressions et PDF. |
 | **Assistant de rentabilité** | Seuil de rentabilité, marges par produit, simulation de prix. |
 | **Paramètres & sauvegardes** | Nom du commerce, catégories, moyens de paiement, formats, sauvegarde/restauration, réinitialisation. |
+| **Guide & aide** | Explication complète : écrans, formules des indicateurs (chiffre d'affaires, marge, résultat, trésorerie, budget), vocabulaire, questions fréquentes, exemple chiffré et vos chiffres réels. |
 
 Aucune donnée de démonstration n'est présentée comme réelle : tant qu'aucune
 opération n'a été saisie, les écrans affichent un état vide explicite.
@@ -181,7 +182,7 @@ src/
   shared/                  utilitaires DOM, dates, formats, UI, graphiques, routeur
   database/                IndexedDB : schéma, migrations, accès bas niveau
   services/                logique métier pure (ventes, stock, trésorerie, …)
-  modules/                 les 13 écrans (un fichier par écran)
+  modules/                 les 14 écrans (un fichier par écran)
   styles/                  design system Tailwind
 tests/                     tests unitaires et scénario de référence
 ```

@@ -173,7 +173,7 @@ function openPurchaseDetail(purchase) {
         </div>
 
         <div class="table-wrap">
-          <table class="table">
+          <table class="table table-stack">
             <thead>
               <tr>
                 <th>Produit</th>
@@ -188,12 +188,12 @@ function openPurchaseDetail(purchase) {
               ${(purchase.lines || []).map(
                 (line) => html`
                   <tr>
-                    <td class="font-medium">${line.label}</td>
-                    <td class="text-right">${formatQuantity(line.quantity, line.unit)}</td>
-                    <td class="text-right">${formatMoney(line.unitPrice)}</td>
-                    <td class="text-right">${formatMoney(line.allocatedFees || 0)}</td>
-                    <td class="text-right font-semibold">${formatMoney(line.allocatedUnitCost ?? line.unitPrice)}</td>
-                    <td class="text-right">${formatMoney(line.netTotal ?? 0)}</td>
+                    <td data-label="Produit" class="font-medium">${line.label}</td>
+                    <td data-label="Qté" class="text-right">${formatQuantity(line.quantity, line.unit)}</td>
+                    <td data-label="Prix unitaire" class="text-right">${formatMoney(line.unitPrice)}</td>
+                    <td data-label="Frais alloués" class="text-right">${formatMoney(line.allocatedFees || 0)}</td>
+                    <td data-label="Coût d’acquisition" class="text-right font-semibold">${formatMoney(line.allocatedUnitCost ?? line.unitPrice)}</td>
+                    <td data-label="Total net" class="text-right">${formatMoney(line.netTotal ?? 0)}</td>
                   </tr>
                 `,
               )}

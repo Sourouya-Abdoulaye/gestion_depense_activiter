@@ -162,6 +162,7 @@ export const ROUTES = [
   { path: 'rapports', label: 'Rapports', icon: 'chart', group: 'Analyse', mobile: true },
   { path: 'rentabilite', label: 'Assistant de rentabilité', icon: 'calculator', group: 'Analyse' },
   { path: 'parametres', label: 'Paramètres & sauvegardes', icon: 'settings', group: 'Analyse' },
+  { path: 'aide', label: 'Guide & aide', icon: 'help', group: 'Analyse' },
 ];
 
 export const DEFAULT_ROUTE = 'tableau-de-bord';

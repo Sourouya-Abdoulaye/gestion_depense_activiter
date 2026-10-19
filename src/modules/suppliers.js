@@ -78,7 +78,7 @@ function openDebtsModal(supplier, payables) {
         ? html`<p class="text-sm text-muted">Aucune dette en cours pour ce fournisseur.</p>`
         : html`
             <div class="table-wrap">
-              <table class="table">
+              <table class="table table-stack">
                 <thead>
                   <tr><th>Achat</th><th>Date</th><th>Échéance</th><th class="text-right">Solde dû</th><th class="text-right">Action</th></tr>
                 </thead>
@@ -86,13 +86,13 @@ function openDebtsModal(supplier, payables) {
                   ${entries.map(
                     (entry) => html`
                       <tr>
-                        <td class="font-medium">${entry.purchase.reference}</td>
-                        <td>${formatDate(entry.purchase.date)}</td>
-                        <td class="${entry.overdueDays > 0 ? 'text-danger font-semibold' : ''}">
+                        <td data-label="Achat" class="font-medium">${entry.purchase.reference}</td>
+                        <td data-label="Date">${formatDate(entry.purchase.date)}</td>
+                        <td data-label="Échéance" class="${entry.overdueDays > 0 ? 'text-danger font-semibold' : ''}">
                           ${entry.dueDate ? formatDate(entry.dueDate) : '—'}${entry.overdueDays > 0 ? ` (${entry.overdueDays} j)` : ''}
                         </td>
-                        <td class="text-right font-semibold">${formatMoney(entry.balance)}</td>
-                        <td class="text-right">
+                        <td data-label="Solde dû" class="text-right font-semibold">${formatMoney(entry.balance)}</td>
+                        <td data-label="Action" class="text-right">
                           <button type="button" class="btn-primary btn-sm" data-settle="${entry.purchase.id}">Payer</button>
                         </td>
                       </tr>

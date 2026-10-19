@@ -20,7 +20,7 @@ export function filterBar({ activities = [], showActivity = true, lockedActivity
   const archivedActivities = activities.filter((activity) => activity.status === ACTIVITY_STATUS.ARCHIVED);
 
   const node = element(html`
-    <div class="card card-pad no-print mb-4">
+    <div class="card card-pad no-print filter-bar mb-4">
       <div class="flex flex-wrap items-end gap-3">
         ${showActivity
           ? html`

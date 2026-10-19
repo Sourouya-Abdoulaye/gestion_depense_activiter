@@ -30,6 +30,7 @@ const MODULE_LOADERS = {
   rapports: () => import('./modules/reports.js'),
   rentabilite: () => import('./modules/profitability.js'),
   parametres: () => import('./modules/settings.js'),
+  aide: () => import('./modules/help.js'),
 };
 
 /* ------------------------------- navigation ----------------------------- */

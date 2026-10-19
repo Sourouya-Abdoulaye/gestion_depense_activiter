@@ -218,11 +218,11 @@ function paint(ctx, api) {
       .map(
         (entry, index) => html`
           <tr>
-            <td class="text-muted">${index + 1}</td>
-            <td class="font-medium">${entry.label}</td>
-            <td class="text-right">${formatQuantity(entry.quantity, entry.unit)}</td>
-            <td class="text-right">${formatMoney(entry.revenue)}</td>
-            <td class="text-right ${entry.margin < 0 ? 'text-danger' : 'text-brand-dark'}">${formatMoney(entry.margin)}</td>
+            <td data-label="#" class="text-muted">${index + 1}</td>
+            <td data-label="Produit" class="font-medium">${entry.label}</td>
+            <td data-label="Quantité" class="text-right">${formatQuantity(entry.quantity, entry.unit)}</td>
+            <td data-label="Chiffre d’affaires" class="text-right">${formatMoney(entry.revenue)}</td>
+            <td data-label="Marge" class="text-right ${entry.margin < 0 ? 'text-danger' : 'text-brand-dark'}">${formatMoney(entry.margin)}</td>
           </tr>
         `,
       )
@@ -233,7 +233,7 @@ function paint(ctx, api) {
         description: 'Classés par chiffre d’affaires.',
         content: element(html`
           <div class="table-wrap">
-            <table class="table">
+            <table class="table table-stack">
               <thead>
                 <tr><th>#</th><th>Produit</th><th class="text-right">Quantité</th><th class="text-right">Chiffre d’affaires</th><th class="text-right">Marge</th></tr>
               </thead>

@@ -114,11 +114,11 @@ function importBackup(payload) {
         <p>Schéma : <strong>${preview.schemaVersion ?? '—'}</strong></p>
       </div>
       <div class="table-wrap">
-        <table class="table">
+        <table class="table table-stack">
           <thead><tr><th>Collection</th><th class="text-right">Enregistrements</th></tr></thead>
           <tbody>
             ${Object.entries(counts).map(
-              ([name, count]) => html`<tr><td>${name}</td><td class="text-right">${count}</td></tr>`,
+              ([name, count]) => html`<tr><td data-label="Collection">${name}</td><td data-label="Enregistrements" class="text-right">${count}</td></tr>`,
             )}
           </tbody>
         </table>

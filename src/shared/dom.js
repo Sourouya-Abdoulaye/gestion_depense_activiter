@@ -23,22 +23,34 @@ export function raw(value) {
 }
 
 /**
+ * Convertit une valeur interpolée en balisage sûr.
+ * Accepte les fragments déjà construits (raw), les nœuds DOM (Element, Node)
+ * et les valeurs simples (échappées). Sans le cas DOM, un élément interpolé
+ * s'afficherait comme « [object HTMLElement] ».
+ */
+function valueToMarkup(value) {
+  if (value === null || value === undefined || value === false) return '';
+  if (typeof value === 'object') {
+    if (value.__html) return value.__html;
+    if (typeof value.outerHTML === 'string') return value.outerHTML;
+    if (typeof value.toString === 'function' && value.toString !== Object.prototype.toString) {
+      return escapeHtml(value.toString());
+    }
+  }
+  return escapeHtml(value);
+}
+
+/**
  * Gabarit HTML : toute valeur interpolée est échappée automatiquement.
  * Utiliser raw() pour insérer un fragment déjà construit.
  */
 export function html(strings, ...values) {
   let output = strings[0];
   values.forEach((value, index) => {
-    if (value === null || value === undefined || value === false) {
-      output += '';
-    } else if (typeof value === 'object' && value.__html) {
-      output += value.__html;
-    } else if (Array.isArray(value)) {
-      output += value
-        .map((item) => (item && typeof item === 'object' && item.__html ? item.__html : escapeHtml(item)))
-        .join('');
+    if (Array.isArray(value)) {
+      output += value.map(valueToMarkup).join('');
     } else {
-      output += escapeHtml(value);
+      output += valueToMarkup(value);
     }
     output += strings[index + 1];
   });

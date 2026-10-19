@@ -79,6 +79,15 @@
   #app {
     min-height: 100vh;
   }
+
+  /* Les blocs <details> (guide, aide) masquent le marqueur natif : la flèche
+     est dessinée dans le résumé, identique sur tous les navigateurs. */
+  summary {
+    cursor: pointer;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
 }
 
 /* ---------------------------- composants -------------------------------- */
@@ -163,6 +172,7 @@
 
   .table-wrap {
     @apply w-full overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .table {
@@ -227,6 +237,110 @@
 #modal-root[hidden],
 #toast-root[hidden] {
   display: none;
+}
+
+/* --------------------------- adaptation mobile --------------------------- */
+/*
+ * Sur téléphone, les tableaux de liste (classe .table-stack) se transforment en
+ * fiches : chaque cellule affiche son libellé (data-label) à gauche et sa valeur
+ * à droite. Plus de défilement horizontal ni de colonnes tronquées.
+ */
+@media (max-width: 639px) {
+  .table-stack,
+  .table-stack tbody,
+  .table-stack tr,
+  .table-stack td {
+    display: block;
+    width: 100%;
+  }
+
+  .table-stack thead {
+    display: none;
+  }
+
+  .table-stack tbody tr {
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--color-line);
+    border-radius: 0.75rem;
+    background: #fff;
+    padding: 0.25rem 0.75rem;
+  }
+
+  .table-stack tbody tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .table-stack tbody td {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-line) 70%, transparent);
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  .table-stack tbody td:last-child,
+  .table-stack tbody td:empty {
+    border-bottom: 0;
+  }
+
+  .table-stack tbody td:empty {
+    display: none;
+  }
+
+  .table-stack tbody td::before {
+    content: attr(data-label);
+    flex: 0 0 42%;
+    padding-top: 0.1rem;
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .table-stack tbody td[data-label='']::before,
+  .table-stack tbody td:not([data-label])::before {
+    display: none;
+  }
+
+  /* Les actions de page occupent toute la largeur disponible, par deux. */
+  .page-actions {
+    width: 100%;
+  }
+
+  .page-actions > .btn,
+  .page-actions > button,
+  .page-actions > a {
+    flex: 1 1 calc(50% - 0.5rem);
+    min-width: 0;
+    white-space: normal;
+    text-align: center;
+  }
+
+  /* Pied de modale : boutons faciles à toucher. */
+  .modal-actions {
+    width: 100%;
+  }
+
+  .modal-actions > button {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* Barre de filtres : champs pleine largeur. */
+  .filter-bar [class*='min-w-['] {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Le contenu ne doit jamais provoquer un défilement horizontal de la page. */
+  #view {
+    overflow-x: clip;
+  }
 }
 
 @media print {

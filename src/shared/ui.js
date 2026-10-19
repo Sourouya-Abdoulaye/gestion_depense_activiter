@@ -139,7 +139,7 @@ export function openModal({ title, content, actions = [], size = 'md', onClose =
   };
 
   if (actions && actions.length > 0) {
-    const footer = element('<footer class="flex flex-wrap items-center justify-end gap-2 border-t border-line bg-canvas/60 px-5 py-3"></footer>');
+    const footer = element('<footer class="modal-actions flex flex-wrap items-center justify-end gap-2 border-t border-line bg-canvas/60 px-5 py-3"></footer>');
     for (const action of actions) {
       const variant = {
         primary: 'btn-primary',
@@ -285,7 +285,7 @@ export function pageHeader({ title, subtitle = '', actions = [], breadcrumb = ''
         <h1 class="truncate text-xl font-bold text-brand-dark sm:text-2xl">${title}</h1>
         ${subtitle ? html`<p class="mt-1 text-sm text-muted">${subtitle}</p>` : ''}
       </div>
-      ${actions.length > 0 ? html`<div class="no-print flex flex-wrap items-center gap-2"></div>` : ''}
+      ${actions.length > 0 ? html`<div class="page-actions no-print flex flex-wrap items-center gap-2"></div>` : ''}
     </div>
   `);
   if (actions.length > 0) {
@@ -420,7 +420,7 @@ export function dataTable({ columns, rows = [], empty = {}, searchable = false, 
           `
         : ''}
       <div class="table-wrap">
-        <table class="table">
+        <table class="table table-stack">
           ${caption ? html`<caption class="sr-only">${caption}</caption>` : ''}
           <thead>
             <tr>
@@ -453,7 +453,7 @@ export function dataTable({ columns, rows = [], empty = {}, searchable = false, 
       const value = column.render ? column.render(row) : escapeHtml(row[column.key] ?? '');
       const isSafe = value && typeof value === 'object' && value.__html;
       const align = column.align === 'right' ? 'text-right tabular-nums' : column.align === 'center' ? 'text-center' : '';
-      return `<td class="${align} ${column.className || ''}">${isSafe ? value.__html : escapeHtml(value)}</td>`;
+      return `<td data-label="${escapeHtml(column.label || '')}" class="${align} ${column.className || ''}">${isSafe ? value.__html : escapeHtml(value)}</td>`;
     }).join('');
   }
 
