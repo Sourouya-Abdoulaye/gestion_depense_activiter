@@ -16,7 +16,7 @@ import { createPage } from '../shared/screen.js';
 import { button, confirmDialog, kpiCard, noticePanel, pageHeader, sectionCard } from '../shared/ui.js';
 import { icon } from '../shared/icons.js';
 import { startTour } from '../shared/tour.js';
-import { enterDemoMode, isDemoMode, resetDemoMode } from '../services/demo.js';
+import { enterDemoMode, exitDemoMode, isDemoMode, resetDemoMode } from '../services/demo.js';
 import { currentActivity, getState } from '../services/state.js';
 import { activityBudget, computeKpis, payableList, receivableList } from '../services/finance.js';
 import { periodLabel } from '../services/reports.js';
@@ -707,6 +707,24 @@ function paint(ctx) {
           iconName: 'lightbulb',
           onClick: () => startTour({ force: true }),
         }),
+        ...(isDemoMode()
+          ? [
+              button({
+                label: 'Quitter la démo',
+                iconName: 'arrowLeft',
+                onClick: async () => {
+                  const quit = await confirmDialog({
+                    title: 'Quitter le mode démonstration ?',
+                    message: 'L’application va recharger vos données réelles.',
+                    details: 'Les données fictives restent dans leur base séparée : vos vraies données n’ont pas été modifiées.',
+                    confirmLabel: 'Quitter la démo',
+                    variant: 'primary',
+                  });
+                  if (quit) exitDemoMode();
+                },
+              }),
+            ]
+          : []),
         button({
           label: isDemoMode() ? 'Réinitialiser la démo' : 'Mode démonstration',
           iconName: 'activity',
