@@ -20,25 +20,110 @@ const INK = [17, 24, 39];
 const MUTED = [107, 114, 128];
 const LIGHT = [220, 252, 231];
 
-function pdfTable(doc, { startY, columns, rows, margin, pageWidth, zebra = true }) {
+/** Modèles de reçus (L13). Le rendu PDF et l'impression partagent ces variantes. */
+export const RECEIPT_TEMPLATES = [
+  { value: 'classic', label: 'Classique', description: 'En-tête vert, tableau contrasté, mise en page A4.' },
+  { value: 'compact', label: 'Compact', description: 'Format A5, marges réduites, idéal pour une imprimante thermique.' },
+  { value: 'minimal', label: 'Minimal', description: 'Noir et blanc, sans aplat de couleur, économique à l’impression.' },
+];
+
+const RECEIPT_THEMES = {
+  classic: { headerFill: DARK, headerText: [255, 255, 255], zebra: true, fontSize: 9, tableHeaderHeight: 20 },
+  compact: { headerFill: LIGHT, headerText: DARK, zebra: false, fontSize: 8, tableHeaderHeight: 18 },
+  minimal: { headerFill: null, headerText: INK, zebra: false, fontSize: 9, tableHeaderHeight: 18 },
+};
+
+function receiptTheme(template) {
+  return RECEIPT_THEMES[template] || RECEIPT_THEMES.classic;
+}
+
+function imageFormat(dataUrl) {
+  const match = /^data:image\/(png|jpe?g|webp)/i.exec(String(dataUrl || ''));
+  if (!match) return 'PNG';
+  const kind = match[1].toLowerCase();
+  if (kind === 'jpg' || kind === 'jpeg') return 'JPEG';
+  if (kind === 'webp') return 'WEBP';
+  return 'PNG';
+}
+
+/** Dessine le logo s'il existe ; une image invalide ne doit jamais bloquer l'édition. */
+function drawLogo(doc, settings, { x, y, size }) {
+  if (!settings?.logoDataUrl) return false;
+  try {
+    doc.addImage(settings.logoDataUrl, imageFormat(settings.logoDataUrl), x, y, size, size);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function shopContactLines(settings) {
+  return [settings?.shopPhone, settings?.shopAddress, settings?.shopTaxId].filter(Boolean);
+}
+
+/** Pied de page commun aux reçus PDF (message libre + mentions). */
+function drawReceiptFooter(doc, settings, { margin, pageWidth, y }) {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const usable = pageWidth - margin * 2;
+  let cursor = Math.max(y, pageHeight - 92);
+  doc.setDrawColor(...LIGHT);
+  doc.setLineWidth(1);
+  doc.line(margin, cursor, pageWidth - margin, cursor);
+  cursor += 14;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(...MUTED);
+  if (settings?.receiptFooter) {
+    const lines = doc.splitTextToSize(String(settings.receiptFooter), usable);
+    doc.text(lines, margin, cursor);
+    cursor += lines.length * 12 + 2;
+  }
+  const contact = shopContactLines(settings).join(' — ');
+  if (contact) {
+    const lines = doc.splitTextToSize(contact, usable);
+    doc.text(lines, margin, cursor);
+    cursor += lines.length * 11 + 2;
+  }
+  doc.setFontSize(8);
+  doc.text(
+    doc.splitTextToSize(
+      'Reçu généré depuis les opérations enregistrées. Conservez-le comme justificatif. Données locales, non synchronisées.',
+      usable,
+    ),
+    margin,
+    cursor,
+  );
+}
+
+function pdfTable(doc, { startY, columns, rows, margin, pageWidth, zebra = true, theme }) {
+  const style = theme || { headerFill: DARK, headerText: [255, 255, 255], zebra, fontSize: 9, tableHeaderHeight: 20 };
   const usable = pageWidth - margin * 2;
   const widths = columns.map((column) => column.width * usable);
+  const headerHeight = style.tableHeaderHeight || 20;
+  const fontSize = style.fontSize || 9;
+  const rowPadding = Math.round(fontSize * 1.8);
   let y = startY;
 
   const drawHeader = () => {
-    doc.setFillColor(...DARK);
-    doc.rect(margin, y, usable, 20, 'F');
-    doc.setTextColor(255, 255, 255);
+    if (style.headerFill) {
+      doc.setFillColor(...style.headerFill);
+      doc.rect(margin, y, usable, headerHeight, 'F');
+    } else {
+      doc.setDrawColor(...LIGHT);
+      doc.setLineWidth(0.8);
+      doc.line(margin, y + headerHeight, margin + usable, y + headerHeight);
+    }
+    doc.setTextColor(...(style.headerText || INK));
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(fontSize);
     let x = margin;
     columns.forEach((column, index) => {
       const align = column.align === 'right' ? 'right' : 'left';
       const tx = align === 'right' ? x + widths[index] - 4 : x + 4;
-      doc.text(String(column.label), tx, y + 13, { align });
+      doc.text(String(column.label), tx, y + headerHeight - 6, { align });
       x += widths[index];
     });
-    y += 20;
+    y += headerHeight;
     doc.setTextColor(...INK);
     doc.setFont('helvetica', 'normal');
   };
@@ -55,19 +140,19 @@ function pdfTable(doc, { startY, columns, rows, margin, pageWidth, zebra = true 
     const lineCount = Math.max(
       ...cells.map((value, index) => doc.splitTextToSize(value, widths[index] - 8).length),
     );
-    const rowHeight = Math.max(16, 8 + lineCount * 10);
+    const rowHeight = Math.max(rowPadding, 4 + lineCount * (fontSize + 2));
 
-    if (zebra && rowIndex % 2 === 1) {
+    if (style.zebra && rowIndex % 2 === 1) {
       doc.setFillColor(249, 250, 251);
       doc.rect(margin, y, usable, rowHeight, 'F');
     }
     let x = margin;
-    doc.setFontSize(9);
+    doc.setFontSize(fontSize);
     cells.forEach((value, index) => {
       const align = columns[index].align === 'right' ? 'right' : 'left';
       const tx = align === 'right' ? x + widths[index] - 4 : x + 4;
       const lines = doc.splitTextToSize(value, widths[index] - 8);
-      doc.text(lines, tx, y + 12, { align });
+      doc.text(lines, tx, y + fontSize + 3, { align });
       x += widths[index];
     });
     y += rowHeight;
@@ -76,39 +161,57 @@ function pdfTable(doc, { startY, columns, rows, margin, pageWidth, zebra = true 
   return y;
 }
 
-function docHeader(doc, { title, subtitle, settings, activityName, periodLabel, margin, pageWidth }) {
-  doc.setFillColor(...BRAND);
+function docHeader(doc, { title, settings, activityName, periodLabel, margin, pageWidth, showLogo = true, monochrome = false }) {
+  const compact = pageWidth < 300;
+  const logoSize = compact ? 26 : 34;
+  const hasLogo = showLogo && drawLogo(doc, settings, { x: margin, y: compact ? 18 : 24, size: logoSize });
+  const textX = hasLogo ? margin + logoSize + 10 : margin;
+
+  doc.setFillColor(...(monochrome ? INK : BRAND));
   doc.rect(0, 0, pageWidth, 6, 'F');
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.setTextColor(...DARK);
-  doc.text(settings?.shopName || 'Mon Commerce', margin, 44);
+  doc.setFontSize(compact ? 13 : 16);
+  doc.setTextColor(...(monochrome ? INK : DARK));
+  doc.text(settings?.shopName || 'Mon Commerce', textX, compact ? 34 : 44);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(...MUTED);
-  const lines = [title, activityName ? `Activité : ${activityName}` : 'Toutes les activités', periodLabel];
-  lines.filter(Boolean).forEach((line, index) => doc.text(line, margin, 60 + index * 12));
-
-  doc.setTextColor(...MUTED);
   doc.setFontSize(8);
-  const stamp = `Édité le ${formatDate(new Date())} — ${CURRENCY_SYMBOL} (XOF)`;
-  doc.text(stamp, pageWidth - margin, 44, { align: 'right' });
-  doc.text('Mon Commerce — application locale, données non synchronisées', pageWidth - margin, 56, { align: 'right' });
+  doc.setTextColor(...MUTED);
+  shopContactLines(settings)
+    .slice(0, compact ? 1 : 2)
+    .forEach((line, index) => doc.text(String(line), textX, (compact ? 44 : 57) + index * 10));
+
+  doc.setFontSize(compact ? 8 : 9);
+  const titleY = compact ? 62 : 82;
+  const lines = [title, activityName ? `Activité : ${activityName}` : 'Toutes les activités', periodLabel];
+  lines.filter(Boolean).forEach((line, index) => doc.text(line, margin, titleY + index * (compact ? 10 : 12)));
+
+  if (!compact) {
+    doc.setTextColor(...MUTED);
+    doc.setFontSize(8);
+    const stamp = `Édité le ${formatDate(new Date())} — ${CURRENCY_SYMBOL} (XOF)`;
+    doc.text(stamp, pageWidth - margin, 44, { align: 'right' });
+    doc.text('Mon Commerce — application locale, données non synchronisées', pageWidth - margin, 56, { align: 'right' });
+  }
+
+  const ruleY = compact ? titleY + lines.length * 10 + 6 : 122;
   doc.setDrawColor(...LIGHT);
   doc.setLineWidth(1);
-  doc.line(margin, 100, pageWidth - margin, 100);
+  doc.line(margin, ruleY, pageWidth - margin, ruleY);
 
   doc.setTextColor(...INK);
-  return 118;
+  return ruleY + 16;
 }
 
 /** Reçu de vente au format PDF. */
 export function buildSaleReceiptPdf(sale, context = {}) {
   const { settings, activity, customer, payments = [], returns = [], netTotal, balance } = context;
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-  const margin = 40;
+  const template = settings?.receiptTemplate || 'classic';
+  const theme = receiptTheme(template);
+  const compact = template === 'compact';
+  const doc = new jsPDF({ unit: 'pt', format: compact ? [148, 210] : 'a4' });
+  const margin = compact ? 22 : 40;
   const pageWidth = doc.internal.pageSize.getWidth();
   const usable = pageWidth - margin * 2;
 
@@ -119,14 +222,16 @@ export function buildSaleReceiptPdf(sale, context = {}) {
     periodLabel: `Date : ${formatDate(sale.date)}`,
     margin,
     pageWidth,
+    showLogo: settings?.receiptShowLogo !== false,
+    monochrome: template === 'minimal',
   });
 
-  doc.setFontSize(10);
+  doc.setFontSize(compact ? 9 : 10);
   doc.setFont('helvetica', 'bold');
   doc.text('Client', margin, y);
   doc.setFont('helvetica', 'normal');
-  doc.text(customer ? `${customer.name}${customer.phone ? ` — ${customer.phone}` : ''}` : 'Client de passage', margin + 60, y);
-  y += 24;
+  doc.text(customer ? `${customer.name}${customer.phone ? ` — ${customer.phone}` : ''}` : 'Client de passage', margin + (compact ? 44 : 60), y);
+  y += compact ? 20 : 24;
 
   const columns = [
     { label: 'Produit', width: 0.42 },
@@ -140,7 +245,7 @@ export function buildSaleReceiptPdf(sale, context = {}) {
     formatMoney(line.unitPrice),
     formatMoney(line.quantity * line.unitPrice - (line.discount || 0)),
   ]);
-  y = pdfTable(doc, { startY: y, columns, rows, margin, pageWidth });
+  y = pdfTable(doc, { startY: y, columns, rows, margin, pageWidth, theme });
 
   const totals = [];
   totals.push(['Sous-total', formatMoney((sale.lines || []).reduce((total, line) => total + line.quantity * line.unitPrice, 0))]);
@@ -153,17 +258,18 @@ export function buildSaleReceiptPdf(sale, context = {}) {
   totals.push(['Solde restant dû', formatMoney(balance ?? 0)]);
 
   y += 12;
+  const totalsX = margin + usable * (compact ? 0.32 : 0.5);
   totals.forEach(([label, value], index) => {
     const isTotal = label === 'TOTAL';
     const isBalance = label === 'Solde restant dû';
     doc.setFont('helvetica', isTotal || isBalance ? 'bold' : 'normal');
-    doc.setFontSize(isTotal ? 12 : 10);
-    doc.setTextColor(...(isBalance && (balance ?? 0) > 0 ? [220, 38, 38] : isTotal ? DARK : INK));
-    doc.text(label, margin + usable * 0.5, y);
+    doc.setFontSize(isTotal ? (compact ? 11 : 12) : compact ? 9 : 10);
+    doc.setTextColor(...(isBalance && (balance ?? 0) > 0 ? [220, 38, 38] : isTotal && template !== 'minimal' ? DARK : INK));
+    doc.text(label, totalsX, y);
     doc.text(value, pageWidth - margin, y, { align: 'right' });
     if (isTotal) {
-      doc.setDrawColor(...BRAND);
-      doc.line(margin + usable * 0.5, y - 12, pageWidth - margin, y - 12);
+      doc.setDrawColor(...(template === 'minimal' ? INK : BRAND));
+      doc.line(totalsX, y - 12, pageWidth - margin, y - 12);
     }
     y += isTotal ? 20 : 16;
   });
@@ -171,18 +277,15 @@ export function buildSaleReceiptPdf(sale, context = {}) {
   y += 10;
   doc.setTextColor(...MUTED);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
+  doc.setFontSize(compact ? 8 : 9);
   doc.text(
     `Paiements : ${payments.length > 0 ? payments.map((payment) => `${payment.method} ${formatMoney(payment.amount)}`).join(', ') : 'aucun (vente à crédit)'}`,
     margin,
     y,
   );
-  y += 14;
-  doc.text(
-    'Ce reçu est généré à partir des opérations enregistrées. Conservez-le comme justificatif.',
-    margin,
-    y,
-  );
+  y += compact ? 12 : 14;
+
+  drawReceiptFooter(doc, settings, { margin, pageWidth, y });
 
   return { doc, filename: `recu-${sale.reference}.pdf` };
 }
@@ -196,6 +299,7 @@ export function downloadSaleReceiptPdf(sale, context) {
 /** Version imprimable du reçu (impression directe depuis le navigateur). */
 export function printSaleReceipt(sale, context = {}) {
   const { settings, activity, customer, payments = [], returns = [], netTotal, balance } = context;
+  const template = settings?.receiptTemplate || 'classic';
   const rows = (sale.lines || [])
     .map(
       (line) => `<tr>
@@ -208,6 +312,13 @@ export function printSaleReceipt(sale, context = {}) {
     .join('');
   const returnsValue = returns.reduce((total, item) => total + item.total, 0);
   const paid = payments.reduce((total, payment) => total + (payment.direction === 'in' ? payment.amount : -payment.amount), 0);
+  const contactLines = shopContactLines(settings)
+    .map((line) => `<p class="contact">${escape(String(line))}</p>`)
+    .join('');
+  const logo =
+    settings?.receiptShowLogo !== false && settings?.logoDataUrl
+      ? `<img class="logo" src="${escape(settings.logoDataUrl)}" alt="Logo ${escape(settings?.shopName || 'Mon Commerce')}" />`
+      : '';
 
   const markup = `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8" />
@@ -217,6 +328,9 @@ export function printSaleReceipt(sale, context = {}) {
   body { font-family: 'Segoe UI', Arial, sans-serif; color: #111827; margin: 24px; }
   h1 { color: #166534; font-size: 18px; margin: 0 0 4px; }
   .muted { color: #6B7280; font-size: 12px; }
+  .header { display: flex; align-items: flex-start; gap: 12px; }
+  .logo { width: 56px; height: 56px; object-fit: contain; border-radius: 8px; }
+  .contact { margin: 2px 0 0; color: #6B7280; font-size: 11px; }
   table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
   th { background: #166534; color: #fff; text-align: left; padding: 8px; font-size: 11px; text-transform: uppercase; }
   td { border-bottom: 1px solid #E5E7EB; padding: 8px; }
@@ -226,13 +340,39 @@ export function printSaleReceipt(sale, context = {}) {
   .totals .total { border-top: 2px solid #15803D; font-weight: 700; font-size: 15px; color: #166534; }
   .totals .due { color: #DC2626; font-weight: 700; }
   .bar { height: 6px; background: #15803D; margin: -24px -24px 24px; }
-  @media print { .bar { display: block; } }
+  footer { margin-top: 28px; border-top: 1px solid #DCFCE7; padding-top: 10px; color: #6B7280; font-size: 11px; }
+  footer p { margin: 0 0 4px; }
+  body.compact { margin: 14px; font-size: 12px; }
+  body.compact .bar { margin: -14px -14px 16px; height: 4px; }
+  body.compact h1 { font-size: 15px; }
+  body.compact table { font-size: 11px; margin-top: 10px; }
+  body.compact th, body.compact td { padding: 5px; }
+  body.compact th { background: #DCFCE7; color: #166534; }
+  body.compact .totals { width: 240px; font-size: 11px; }
+  body.compact .totals .total { font-size: 13px; }
+  body.minimal { margin: 24px; color: #111827; }
+  body.minimal .bar { display: none; }
+  body.minimal h1 { color: #111827; }
+  body.minimal th { background: transparent; color: #111827; border-bottom: 2px solid #111827; }
+  body.minimal td { border-bottom: 1px solid #D1D5DB; }
+  body.minimal .totals .total { border-top: 2px solid #111827; color: #111827; }
+  @media print {
+    body { margin: 0; }
+    body.compact { margin: 0; }
+    ${template === 'compact' ? '@page { size: A5; margin: 8mm; }' : '@page { size: A4; margin: 12mm; }'}
+  }
 </style></head>
-<body>
+<body class="${escape(template)}">
   <div class="bar"></div>
-  <h1>${escape(settings?.shopName || 'Mon Commerce')}</h1>
-  <p class="muted">Reçu de vente ${escape(sale.reference)} — ${escape(formatDate(sale.date))}</p>
-  <p class="muted">${escape(activity ? activity.name : '')} ${customer ? `— Client : ${escape(customer.name)}` : '— Client de passage'}</p>
+  <header class="header">
+    ${logo}
+    <div>
+      <h1>${escape(settings?.shopName || 'Mon Commerce')}</h1>
+      <p class="muted" style="margin:0">Reçu de vente ${escape(sale.reference)} — ${escape(formatDate(sale.date))}</p>
+      <p class="muted" style="margin:0">${escape(activity ? activity.name : '')} ${customer ? `— Client : ${escape(customer.name)}` : '— Client de passage'}</p>
+      ${contactLines}
+    </div>
+  </header>
   <table>
     <thead><tr><th>Produit</th><th class="right">Qté</th><th class="right">Prix unitaire</th><th class="right">Total</th></tr></thead>
     <tbody>${rows}</tbody>
@@ -245,7 +385,10 @@ export function printSaleReceipt(sale, context = {}) {
     <div><span>Montant payé</span><span>${escape(formatMoney(paid))}</span></div>
     <div class="due"><span>Solde restant dû</span><span>${escape(formatMoney(balance ?? 0))}</span></div>
   </div>
-  <p class="muted" style="margin-top:24px">Mon Commerce — reçu généré depuis les opérations enregistrées. Données locales, non synchronisées.</p>
+  <footer>
+    ${settings?.receiptFooter ? `<p>${escape(String(settings.receiptFooter))}</p>` : ''}
+    <p>Mon Commerce — reçu généré depuis les opérations enregistrées. Données locales, non synchronisées.</p>
+  </footer>
   <script>window.addEventListener('load', () => window.print());</script>
 </body></html>`;
 

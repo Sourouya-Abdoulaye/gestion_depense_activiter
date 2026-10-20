@@ -137,14 +137,14 @@ function paint(ctx, api) {
   wrapper.append(
     element(html`
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        ${raw(kpiCard({ label: 'Chiffre d’affaires net', value: formatMoney(kpis.revenue), hint: `Net de ${formatMoney(kpis.returnsValue)} de retours`, iconName: 'receipt' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Marge brute', value: formatMoney(kpis.grossMargin), hint: kpis.revenue > 0 ? `Taux de marge : ${formatPercent(kpis.grossMargin / kpis.revenue)}` : 'Aucune vente sur la période', tone: kpis.grossMargin >= 0 ? 'positive' : 'negative', iconName: 'chart' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Résultat estimé', value: formatMoney(kpis.estimatedResult), hint: `Après ${formatMoney(kpis.operatingExpenses)} de charges d’exploitation`, tone: kpis.estimatedResult >= 0 ? 'positive' : 'negative', iconName: 'banknote' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Trésorerie', value: formatMoney(kpis.treasury), hint: 'Soldes des comptes actifs', iconName: 'wallet' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Encaissements', value: formatMoney(kpis.cashIn), hint: 'Argent réellement reçu sur la période', iconName: 'download' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Créances clients', value: formatMoney(kpis.receivables), hint: 'Montants restant à recevoir', tone: kpis.receivables > 0 ? 'warning' : 'neutral', iconName: 'users' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Dettes fournisseurs', value: formatMoney(kpis.payables), hint: 'Montants restant à payer', tone: kpis.payables > 0 ? 'warning' : 'neutral', iconName: 'truck' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Valeur du stock', value: formatMoney(kpis.stockValue), hint: 'Au coût moyen pondéré', iconName: 'box' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Chiffre d’affaires net', value: formatMoney(kpis.revenue), hint: `Net de ${formatMoney(kpis.returnsValue)} de retours`, iconName: 'receipt', tooltip: 'Ventes validées de la période, moins les remises et les retours. Ce n’est pas l’argent déjà encaissé.' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Marge brute', value: formatMoney(kpis.grossMargin), hint: kpis.revenue > 0 ? `Taux de marge : ${formatPercent(kpis.grossMargin / kpis.revenue)}` : 'Aucune vente sur la période', tone: kpis.grossMargin >= 0 ? 'positive' : 'negative', iconName: 'chart', tooltip: 'Chiffre d’affaires net moins le coût moyen pondéré des produits vendus. Le coût est figé au moment de chaque vente.' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Résultat estimé', value: formatMoney(kpis.estimatedResult), hint: `Après ${formatMoney(kpis.operatingExpenses)} de charges d’exploitation`, tone: kpis.estimatedResult >= 0 ? 'positive' : 'negative', iconName: 'banknote', tooltip: 'Marge brute moins les dépenses d’exploitation de la période. Les achats de stock, investissements et retraits personnels ne sont pas déduits ici.' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Trésorerie', value: formatMoney(kpis.treasury), hint: 'Soldes des comptes actifs', iconName: 'wallet', tooltip: 'Solde initial des comptes + argent réellement entré − argent réellement sorti. Les créances et dettes non réglées sont exclues.' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Encaissements', value: formatMoney(kpis.cashIn), hint: 'Argent réellement reçu sur la période', iconName: 'download', tooltip: 'Paiements effectivement reçus sur la période (ventes, règlements clients, apports). Les ventes à crédit non payées n’y figurent pas.' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Créances clients', value: formatMoney(kpis.receivables), hint: 'Montants restant à recevoir', tone: kpis.receivables > 0 ? 'warning' : 'neutral', iconName: 'users', tooltip: 'Reste à recevoir sur les ventes à crédit : montant des ventes − paiements reçus − avoirs. Ce n’est pas encore de la trésorerie.' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Dettes fournisseurs', value: formatMoney(kpis.payables), hint: 'Montants restant à payer', tone: kpis.payables > 0 ? 'warning' : 'neutral', iconName: 'truck', tooltip: 'Reste à payer sur les achats : montant des achats − paiements − retours. Une dette n’a pas encore impacté la trésorerie.' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Valeur du stock', value: formatMoney(kpis.stockValue), hint: 'Au coût moyen pondéré', iconName: 'box', tooltip: 'Quantité disponible × coût moyen pondéré, calculé à partir de tous les mouvements de stock. Une perte ou une casse réduit cette valeur.' }).outerHTML)}
       </div>
     `),
   );

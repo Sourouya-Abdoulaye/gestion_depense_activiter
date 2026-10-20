@@ -7,14 +7,16 @@
  * Le contenu est pédagogique : il n'enregistre aucune donnée.
  * ------------------------------------------------------------------------- */
 
-import { APP_VERSION, EXPENSE_NATURES, FINANCE_RULES_TEXT } from '../config/constants.js';
+import { APP_VERSION, ACCOUNTING_DISCLAIMER, EXPENSE_NATURES, FINANCE_RULES_TEXT } from '../config/constants.js';
 import { html, element, raw } from '../shared/dom.js';
 import { formatMoney } from '../shared/format.js';
 import { formatDate } from '../shared/dates.js';
 import { getPeriod, getViewState } from '../shared/view-state.js';
 import { createPage } from '../shared/screen.js';
-import { button, kpiCard, noticePanel, pageHeader, sectionCard } from '../shared/ui.js';
+import { button, confirmDialog, kpiCard, noticePanel, pageHeader, sectionCard } from '../shared/ui.js';
 import { icon } from '../shared/icons.js';
+import { startTour } from '../shared/tour.js';
+import { enterDemoMode, isDemoMode, resetDemoMode } from '../services/demo.js';
 import { currentActivity, getState } from '../services/state.js';
 import { activityBudget, computeKpis, payableList, receivableList } from '../services/finance.js';
 import { periodLabel } from '../services/reports.js';
@@ -601,6 +603,30 @@ function buildFaq() {
       title: 'Les chiffres de cette page sont-ils des exemples ?',
       body: 'Non : la section « Vos chiffres du moment » utilise vos opérations réelles et la période sélectionnée. L’exemple chiffré plus bas est clairement présenté comme un exemple pédagogique.',
     },
+    {
+      title: 'Comment suivre les salaires d’un employé ?',
+      body: 'Ouvrez « Employés & paie », créez une fiche puis cliquez sur l’icône de paiement. Le salaire versé devient une dépense d’exploitation reliée à la fiche. Le salaire de référence n’est qu’une valeur par défaut : aucun bulletin de paie légal n’est produit et les cotisations sociales ne sont pas gérées.',
+    },
+    {
+      title: 'Puis-je importer un relevé bancaire ou mobile money ?',
+      body: 'Oui, via « Import de relevés » : exportez un CSV depuis votre banque ou votre opérateur, déposez-le, vérifiez les colonnes détectées puis choisissez le traitement. Aucune connexion automatique à une banque n’est effectuée et les lignes déjà importées sont ignorées.',
+    },
+    {
+      title: 'Que fait exactement l’archivage par exercice ?',
+      body: 'Il exporte une archive JSON de la période, puis retire du quotidien les ventes, achats, dépenses et paiements soldés antérieurs à la date choisie. Les pièces encore impayées sont conservées, les soldes de trésorerie sont reportés en ouverture et l’historique des mouvements de stock reste intact pour garantir la valorisation. Un instantané permet d’annuler.',
+    },
+    {
+      title: 'Pourquoi mes anciens mouvements de stock restent-ils après un archivage ?',
+      body: 'Le stock est valorisé au coût moyen pondéré en rejouant tous les mouvements. Les supprimer fausserait la valeur du stock actuel. Ils sont donc conservés, alors que les documents commerciaux volumineux (ventes, achats, dépenses) peuvent être archivés.',
+    },
+    {
+      title: 'Qu’est-ce que le mode démonstration ?',
+      body: 'C’est un jeu de données fictif, stocké dans une base séparée de vos données réelles. Il sert à découvrir l’application sans risque. Un bandeau permanent rappelle le mode démo et permet de revenir aux données réelles ; rien n’est mélangé.',
+    },
+    {
+      title: 'Pourquoi le coût d’une ancienne vente ne change-t-il pas après une correction d’achat ?',
+      body: 'C’est un choix de fiabilité : les marges déjà publiées ne sont pas réécrites silencieusement. Un diagnostic en lecture seule, dans les rapports, montre l’écart qu’un recalcul produirait, sans modifier les données.',
+    },
   ];
 
   const container = element('<div class="space-y-2"></div>');
@@ -677,6 +703,35 @@ function paint(ctx) {
       subtitle: 'Tout comprendre : les écrans, le chiffre d’affaires, la marge, le résultat, la trésorerie et le budget.',
       actions: [
         button({
+          label: 'Visite guidée',
+          iconName: 'lightbulb',
+          onClick: () => startTour({ force: true }),
+        }),
+        button({
+          label: isDemoMode() ? 'Réinitialiser la démo' : 'Mode démonstration',
+          iconName: 'activity',
+          onClick: async () => {
+            if (isDemoMode()) {
+              const reset = await confirmDialog({
+                title: 'Réinitialiser la démonstration ?',
+                message: 'Les données fictives seront recréées au prochain chargement.',
+                details: 'Vos données réelles ne sont pas concernées : elles restent dans une base séparée.',
+                confirmLabel: 'Réinitialiser',
+              });
+              if (reset) await resetDemoMode();
+              return;
+            }
+            const go = await confirmDialog({
+              title: 'Ouvrir le mode démonstration ?',
+              message: 'L’application va recharger un jeu de données fictif pour vous faire découvrir les écrans.',
+              details: 'La démonstration utilise une base IndexedDB séparée : vos données réelles ne sont ni lues, ni modifiées. Vous pourrez revenir aux données réelles depuis le bandeau.',
+              confirmLabel: 'Essayer la démo',
+              variant: 'primary',
+            });
+            if (go) enterDemoMode();
+          },
+        }),
+        button({
           label: 'Voir mes chiffres',
           iconName: 'chart',
           variant: 'primary',
@@ -713,6 +768,14 @@ function paint(ctx) {
         'Les formules sont rappelées à côté de chaque indicateur pour que vous puissiez vérifier un montant.',
         'Aucune donnée n’est modifiée par cette page : elle est uniquement explicative.',
       ],
+    }),
+  );
+
+  wrapper.append(
+    noticePanel({
+      tone: 'warning',
+      title: 'Outil de pilotage, pas une comptabilité certifiée',
+      message: ACCOUNTING_DISCLAIMER,
     }),
   );
 

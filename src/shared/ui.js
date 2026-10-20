@@ -204,6 +204,38 @@ export function openModal({ title, content, actions = [], size = 'md', onClose =
   return { close, panel, body, wrapper };
 }
 
+/**
+ * Fenêtre de progression pour les traitements longs (L18). Le navigateur doit
+ * peindre l'indicateur avant de lancer le calcul : utiliser `nextFrame()`.
+ */
+export function progressDialog({ title = 'Génération en cours', message = 'Préparation…' } = {}) {
+  const text = element(html`<p class="text-sm text-muted" data-progress-message>${message}</p>`);
+  const track = element(html`
+    <div class="h-2 overflow-hidden rounded-full bg-canvas">
+      <div class="h-full w-0 rounded-full bg-brand transition-all" data-progress-bar></div>
+    </div>
+  `);
+  const content = element('<div class="space-y-3"></div>');
+  content.append(text, track);
+  const modal = openModal({ title, content, size: 'sm' });
+  const bar = track.querySelector('[data-progress-bar]');
+  return {
+    update(percent, nextMessage = '') {
+      bar.style.width = `${Math.max(0, Math.min(100, Number(percent) || 0))}%`;
+      if (nextMessage) text.textContent = nextMessage;
+    },
+    close: modal.close,
+  };
+}
+
+/** Laisse le navigateur peindre l'interface avant un calcul synchrone. */
+export function nextFrame() {
+  return new Promise((resolve) => {
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => setTimeout(resolve, 0));
+    else setTimeout(resolve, 0);
+  });
+}
+
 /** Confirmation avant une action destructrice. */
 export function confirmDialog({ title, message, confirmLabel = 'Confirmer', cancelLabel = 'Annuler', variant = 'danger', details = '' }) {
   return new Promise((resolve) => {
@@ -322,7 +354,7 @@ export function sectionCard({ title = '', description = '', actions = [], conten
   return node;
 }
 
-export function kpiCard({ label, value, hint = '', tone = 'neutral', iconName = '', hintTone = '' }) {
+export function kpiCard({ label, value, hint = '', tone = 'neutral', iconName = '', hintTone = '', tooltip = '' }) {
   const tones = {
     neutral: 'text-ink',
     positive: 'text-brand',
@@ -332,13 +364,66 @@ export function kpiCard({ label, value, hint = '', tone = 'neutral', iconName = 
   return element(html`
     <div class="card card-pad">
       <div class="flex items-start justify-between gap-2">
-        <p class="kpi-label">${label}</p>
+        <p class="kpi-label flex items-center gap-1">${label}${tooltip ? raw(helpTip(tooltip)) : ''}</p>
         ${iconName ? html`<span class="text-brand-dark/70">${raw(icon(iconName, { size: 18 }))}</span>` : ''}
       </div>
       <p class="kpi-value ${tones[tone] || tones.neutral}">${value}</p>
       ${hint ? html`<p class="mt-1 text-xs ${hintTone === 'danger' ? 'text-danger' : hintTone === 'warning' ? 'text-warning' : 'text-muted'}">${hint}</p>` : ''}
     </div>
   `);
+}
+
+let helpTipCounter = 0;
+
+/**
+ * Info-bulle accessible « ? » (L17). Ouverture au clic, fermeture par Échap,
+ * clic extérieur ou second clic. Aucun contenu utilisateur n'est interprété.
+ */
+export function helpTip(text, { label = 'Afficher l’explication' } = {}) {
+  helpTipCounter += 1;
+  const id = `tip-${helpTipCounter}`;
+  const node = element(html`
+    <span class="relative inline-flex align-middle">
+      <button
+        type="button"
+        class="grid h-4 w-4 place-items-center rounded-full border border-line bg-white text-[0.6rem] font-bold text-muted hover:border-brand hover:text-brand-dark"
+        aria-label="${label}"
+        aria-expanded="false"
+        aria-describedby="${id}"
+        data-tip-button
+      >?</button>
+      <span id="${id}" role="tooltip" hidden class="absolute left-0 top-6 z-40 w-56 rounded-lg border border-line bg-white px-3 py-2 text-xs font-normal leading-snug text-ink shadow-float">
+        ${text}
+      </span>
+    </span>
+  `);
+  const button = qs('[data-tip-button]', node);
+  const tip = qs('[role="tooltip"]', node);
+  const close = () => {
+    tip.hidden = true;
+    button.setAttribute('aria-expanded', 'false');
+    document.removeEventListener('click', onDocumentClick);
+    document.removeEventListener('keydown', onKeydown);
+  };
+  const onDocumentClick = (event) => {
+    if (!node.contains(event.target)) close();
+  };
+  const onKeydown = (event) => {
+    if (event.key === 'Escape') close();
+  };
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const open = tip.hidden;
+    tip.hidden = !open;
+    button.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) {
+      document.addEventListener('click', onDocumentClick);
+      document.addEventListener('keydown', onKeydown);
+    } else {
+      close();
+    }
+  });
+  return node;
 }
 
 export function badge(text, tone = 'brand') {

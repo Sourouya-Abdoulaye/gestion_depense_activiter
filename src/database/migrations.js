@@ -46,6 +46,44 @@ export const MIGRATIONS = [
       }
     },
   },
+  {
+    version: 2,
+    description:
+      'Ajout du magasin « snapshots » : instantanés locaux pour annuler un import de sauvegarde et restaurer une suppression.',
+    up(db) {
+      if (db.objectStoreNames.contains('snapshots')) return;
+      const store = db.createObjectStore('snapshots', { keyPath: 'id' });
+      store.createIndex('kind', 'kind');
+      store.createIndex('createdAt', 'createdAt');
+    },
+  },
+  {
+    version: 3,
+    description: 'Ajout du magasin « journal » : annulation de la dernière opération (L12).',
+    up(db) {
+      if (db.objectStoreNames.contains('journal')) return;
+      const store = db.createObjectStore('journal', { keyPath: 'id' });
+      store.createIndex('createdAt', 'createdAt');
+    },
+  },
+  {
+    version: 4,
+    description:
+      'Ajout des magasins « employees » (fiches employés et paie, L10) et « imports » (empreintes des relevés importés, L21).',
+    up(db) {
+      if (!db.objectStoreNames.contains('employees')) {
+        const employees = db.createObjectStore('employees', { keyPath: 'id' });
+        employees.createIndex('name', 'name');
+        employees.createIndex('status', 'status');
+        employees.createIndex('activityId', 'activityId');
+      }
+      if (!db.objectStoreNames.contains('imports')) {
+        const imports = db.createObjectStore('imports', { keyPath: 'id' });
+        imports.createIndex('createdAt', 'createdAt');
+        imports.createIndex('batchId', 'batchId');
+      }
+    },
+  },
 ];
 
 /** Version cible de la base = dernière migration disponible. */

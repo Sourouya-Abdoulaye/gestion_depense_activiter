@@ -47,6 +47,7 @@ export function buildExpense(input) {
     paymentMethod: input.paymentMethod || DEFAULT_METHOD,
     accountId: input.accountId || '',
     beneficiary: input.beneficiary || '',
+    employeeId: input.employeeId || '',
     paid,
     note: input.note || '',
     createdAt: new Date().toISOString(),

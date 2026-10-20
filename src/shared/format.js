@@ -15,6 +15,22 @@ const groupFormatter = (decimals) =>
   });
 
 /**
+ * Décimales d'affichage configurées dans les paramètres (L15).
+ * `null` conserve l'affichage automatique historique (entier sans centimes,
+ * décimales sinon). Les calculs ne sont jamais arrondis par ce réglage.
+ */
+let displayDecimals = null;
+
+export function setMoneyDecimals(value) {
+  const number = Number(value);
+  displayDecimals = Number.isFinite(number) && number >= 0 && number <= 3 ? Math.trunc(number) : null;
+}
+
+export function getMoneyDecimals() {
+  return displayDecimals;
+}
+
+/**
  * Intl utilise une espace fine insécable comme séparateur de milliers.
  * On la remplace par une espace ordinaire pour obtenir un affichage, un export
  * CSV et un rendu PDF strictement identiques et faciles à comparer.
@@ -59,7 +75,8 @@ export function formatNumber(value, decimals = 'auto') {
 
 /** « 50 000 FCFA », « 1 595,24 FCFA ». */
 export function formatMoney(value, options = {}) {
-  const { decimals = 'auto', symbol = true, showSign = false } = options;
+  const { symbol = true, showSign = false } = options;
+  const decimals = options.decimals !== undefined ? options.decimals : displayDecimals === null ? 'auto' : displayDecimals;
   const number = Number(value) || 0;
   const sign = showSign && number > 0 ? '+' : '';
   const text = formatNumber(number, decimals);

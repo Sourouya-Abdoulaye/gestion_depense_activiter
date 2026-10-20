@@ -11,6 +11,7 @@ import { downloadFile } from '../shared/dom.js';
 import { formatMoney, formatMoneyPlain, formatQuantity } from '../shared/format.js';
 import { formatDate } from '../shared/dates.js';
 import { reportToSections } from './reports.js';
+import { ACCOUNTING_COLUMNS, buildAccountingJournal } from './accounting.js';
 
 export const CSV_MIME = 'text/csv';
 
@@ -138,8 +139,31 @@ export function exportExpensesCsv({ expenses, activityName }) {
   });
 }
 
-/** Export d'un rapport complet : un fichier CSV par section. */
-export function exportReportCsv(report, { activityName = '' } = {}) {
+/**
+ * Export du journal comptable simplifié (L9). Un fichier CSV, une ligne par
+ * écriture, avec un contrôle d'équilibre débit = crédit.
+ */
+export function exportAccountingCsv({ state, activityId = '', activityName = '', period = null }) {
+  const journal = buildAccountingJournal(state, { activityId, period });
+  if (journal.rows.length === 0) return { ...journal, filename: '', lines: 0 };
+  const filename = `mon-commerce-journal-comptable-${activityName ? `${activityName}-` : ''}${stamp()}.csv`;
+  const data = journal.rows.map((row) => [
+    formatDate(row.date),
+    row.journal,
+    row.account,
+    row.accountLabel,
+    row.piece,
+    row.label,
+    moneyValue(row.debit),
+    moneyValue(row.credit),
+    row.source,
+  ]);
+  const csv = toCsv(data, { fields: ACCOUNTING_COLUMNS.map((column) => column.label) });
+  downloadCsv(filename, csv);
+  return { ...journal, filename, lines: journal.rows.length };
+}
+
+/** Export d'un rapport complet : un fichier CSV par section. */export function exportReportCsv(report, { activityName = '' } = {}) {
   const sections = reportToSections(report, {
     formatDate: (value) => formatDate(value, 'dd/MM/yyyy'),
     formatMoney: (value) => formatMoney(value),

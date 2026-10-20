@@ -183,6 +183,16 @@ export function maxDate(a, b) {
   return a >= b ? a : b;
 }
 
+/** Période précédente de même durée (comparaison N vs N−1, L11). */
+export function previousPeriod(period) {
+  if (!period || !period.from || !period.to || period.preset === 'all') return null;
+  const days = Math.max(1, daysBetween(period.from, period.to) + 1);
+  const to = addDays(period.from, -1);
+  const from = addDays(to, -(days - 1));
+  if (!from || !to) return null;
+  return { from, to, preset: 'custom', label: 'Période précédente' };
+}
+
 export function minDate(a, b) {
   if (!a) return b || '';
   if (!b) return a;

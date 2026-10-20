@@ -9,6 +9,7 @@
  * ------------------------------------------------------------------------- */
 
 import { ACTIVITY_STATUS, DOCUMENT_STATUS, EXPENSE_NATURE_VALUES } from '../config/constants.js';
+import { readAll } from '../database/db.js';
 import { toISODate, todayISO } from '../shared/dates.js';
 import { roundMoney, toNumber } from '../shared/format.js';
 import { newId, ID_PREFIX } from '../shared/id.js';
@@ -32,6 +33,7 @@ import {
 } from './purchases.js';
 import { buildExpense, buildExpenseReversal, rebuildExpenseUpdate } from './expenses.js';
 import { buildCashAccount, buildCashMovement, buildContribution, buildTransfer, buildWithdrawal } from './cash.js';
+import { lineFingerprint } from './bank-import.js';
 import { purchaseBalance, purchaseTotal, saleBalance, saleTotal } from './finance.js';
 import { applyOperations, currentActivity, getSettings, getState, op, putAll } from './state.js';
 
@@ -593,6 +595,156 @@ export async function deleteSupplier(supplierId) {
     throw new BusinessError('Ce fournisseur possède un historique d’achats : conservez sa fiche pour préserver l’historique.');
   }
   await applyOperations([op.remove('suppliers', supplierId)], { type: 'supplier-deleted', id: supplierId });
+}
+
+/* ------------------------------- employés (L10) ------------------------- */
+
+export async function saveEmployee(input) {
+  const existing = input.id ? getState().employees.find((entry) => entry.id === input.id) : null;
+  const now = new Date().toISOString();
+  const base = {
+    name: assertText(input.name, 'Le nom de l’employé'),
+    phone: String(input.phone || '').trim(),
+    role: String(input.role || '').trim(),
+    hiredAt: toISODate(input.hiredAt) || todayISO(),
+    salary: roundMoney(toNumber(input.salary, 0)),
+    activityId: input.activityId || '',
+    status: input.status === 'inactive' ? 'inactive' : 'active',
+    note: String(input.note || '').trim(),
+    updatedAt: now,
+  };
+  if (base.salary < 0) throw new BusinessError('Le salaire de référence ne peut pas être négatif.');
+  const employee = existing
+    ? { ...existing, ...base }
+    : { id: newId(ID_PREFIX.EMPLOYEE), ...base, createdAt: now };
+  await applyOperations([op.put('employees', employee)], { type: 'employee-saved', id: employee.id });
+  return employee;
+}
+
+export async function setEmployeeStatus(employeeId, status) {
+  const employee = requireEntity('employees', employeeId, 'Employé');
+  const updated = stamp({ ...employee, status: status === 'inactive' ? 'inactive' : 'active' });
+  await applyOperations([op.put('employees', updated)], { type: 'employee-saved', id: employeeId });
+  return updated;
+}
+
+export async function deleteEmployee(employeeId) {
+  const state = getState();
+  if (state.expenses.some((expense) => expense.employeeId === employeeId)) {
+    throw new BusinessError(
+      'Cet employé possède un historique de salaires : désactivez sa fiche au lieu de la supprimer, afin de préserver la traçabilité.',
+    );
+  }
+  await applyOperations([op.remove('employees', employeeId)], { type: 'employee-deleted', id: employeeId });
+}
+
+/** Verse un salaire : crée une dépense d'exploitation reliée à l'employé. */
+export async function payEmployeeSalary(input) {
+  const employee = requireEntity('employees', input.employeeId, 'Employé');
+  const activity = requireActivity(input.activityId || employee.activityId);
+  const period = String(input.period || '').trim();
+  return createExpense({
+    activityId: activity.id,
+    date: input.date,
+    category: 'Salaire',
+    nature: 'operating',
+    amount: input.amount,
+    paymentMethod: input.paymentMethod,
+    accountId: input.accountId,
+    beneficiary: employee.name,
+    employeeId: employee.id,
+    paid: input.paid !== false,
+    note: [period ? `Salaire ${period}` : 'Salaire', input.note].filter(Boolean).join(' — '),
+  });
+}
+
+/* --------------------------- import de relevés (L21) -------------------- */
+
+/**
+ * Importe des lignes de relevé déjà validées par l'utilisateur.
+ * - mode « cash » : chaque ligne devient un mouvement de trésorerie ;
+ * - mode « expense » : les sorties deviennent des dépenses d'exploitation, les
+ *   entrées restent des mouvements de trésorerie.
+ * Les lignes déjà importées (même date, sens, montant, libellé) sont ignorées.
+ */
+export async function importStatementLines({ lines = [], accountId, activityId, mode = 'cash' } = {}) {
+  if (!Array.isArray(lines) || lines.length === 0) throw new BusinessError('Aucune ligne à importer.');
+  const activity = requireActivity(activityId);
+  if (!accountId) throw new BusinessError('Choisissez le compte de trésorerie à rapprocher.');
+
+  const existing = new Set((await readAll('imports')).map((record) => record.id));
+  const batchId = newId(ID_PREFIX.IMPORT);
+  const createdAt = new Date().toISOString();
+  const operations = [];
+  const fingerprints = [];
+  let imported = 0;
+  let skipped = 0;
+
+  for (const line of lines) {
+    const fingerprint = lineFingerprint(line);
+    if (existing.has(fingerprint)) {
+      skipped += 1;
+      continue;
+    }
+    existing.add(fingerprint);
+    fingerprints.push({
+      id: fingerprint,
+      hash: fingerprint,
+      batchId,
+      date: line.date,
+      amount: line.amount,
+      direction: line.direction,
+      label: line.label,
+      createdAt,
+    });
+
+    if (mode === 'expense' && line.direction === 'out') {
+      const { expense, cashMovements } = buildExpense({
+        activityId: activity.id,
+        date: line.date,
+        category: 'Autres',
+        nature: 'operating',
+        amount: line.amount,
+        accountId,
+        paid: true,
+        beneficiary: line.label,
+        note: `Import de relevé — ${line.label}`,
+      });
+      operations.push(op.put('expenses', expense), ...putAll('cashMovements', cashMovements));
+    } else {
+      const movement = buildCashMovement({
+        activityId: activity.id,
+        date: line.date,
+        accountId,
+        direction: line.direction,
+        amount: line.amount,
+        nature: line.direction === 'in' ? 'other_in' : 'other_out',
+        sourceType: 'bank_import',
+        sourceId: batchId,
+        note: `Import de relevé — ${line.label}`,
+      });
+      operations.push(op.put('cashMovements', movement));
+    }
+    imported += 1;
+  }
+
+  if (imported === 0) {
+    throw new BusinessError('Toutes les lignes de ce fichier ont déjà été importées.');
+  }
+
+  const settings = getSettings();
+  operations.push(
+    op.put('settings', {
+      ...settings,
+      lastBankImportAt: createdAt,
+      lastBankImportCount: imported,
+      updatedAt: createdAt,
+    }),
+  );
+  operations.push(...putAll('imports', fingerprints));
+
+  await applyOperations(operations, { type: 'bank-import', summary: `${imported} ligne(s)` });
+  return { imported, skipped, batchId };
 }
 
 /* ------------------------------ paramètres ------------------------------ */

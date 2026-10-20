@@ -36,4 +36,8 @@ export const ID_PREFIX = {
   CASH_ACCOUNT: 'cpt',
   CASH_MOVEMENT: 'trz',
   LINE: 'lig',
+  SNAPSHOT: 'snp',
+  JOURNAL: 'jrn',
+  EMPLOYEE: 'emp',
+  IMPORT: 'imp',
 };

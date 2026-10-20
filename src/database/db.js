@@ -7,7 +7,7 @@
  * complet lors d'une restauration de sauvegarde.
  * ------------------------------------------------------------------------- */
 
-import { DATABASE_NAME, DATA_STORES, META_ID, SETTINGS_ID, STORE_NAMES } from './schema.js';
+import { DATA_STORES, databaseName, META_ID, SETTINGS_ID, STORE_NAMES } from './schema.js';
 import { applyMigrations, targetVersion } from './migrations.js';
 
 let databasePromise = null;
@@ -45,7 +45,7 @@ export function openDatabase() {
       reject(new StorageError("Ce navigateur ne prend pas en charge IndexedDB : l'application ne peut pas enregistrer de données.", { code: 'unsupported' }));
       return;
     }
-    const request = indexedDB.open(DATABASE_NAME, targetVersion());
+    const request = indexedDB.open(databaseName(), targetVersion());
     request.onupgradeneeded = (event) => {
       try {
         applyMigrations(request.result, request.transaction, event.oldVersion, event.newVersion);

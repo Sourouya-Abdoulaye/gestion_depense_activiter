@@ -41,7 +41,8 @@ import {
   saleTotal,
   totalReceivables,
 } from '../services/finance.js';
-import { cancelSale, createSale, paySale, returnSale } from '../services/actions.js';
+import { cancelSale, createSale, paySale, returnSale, adjustStock } from '../services/actions.js';
+import { computeStockState } from '../services/stock.js';
 import { exportRows, moneyValue } from '../services/csv.js';
 
 export const meta = { path: 'ventes', title: 'Ventes & caisse' };
@@ -140,6 +141,48 @@ function openSaleForm() {
       if (requested.length === 0 && !values.customerId) {
         toast('Une vente sans encaissement doit être rattachée à un client pour suivre la créance.', 'warning');
         return false;
+      }
+
+      // L16 : proposer un mouvement d'ouverture à la volée si le stock manque.
+      const liveState = getState();
+      const liveSettings = getSettings();
+      const stockState = computeStockState(liveState.stockMovements, liveState.products);
+      const shortages = items
+        .map((item) => {
+          const product = liveState.products.find((entry) => entry.id === item.productId);
+          const available = stockState[item.productId] ? stockState[item.productId].quantity : 0;
+          const missing = toNumber(item.quantity, 0) - available;
+          return product && missing > 0 ? { product, available, missing, quantity: toNumber(item.quantity, 0) } : null;
+        })
+        .filter(Boolean);
+      if (shortages.length > 0 && !liveSettings.allowNegativeStock) {
+        const details = shortages
+          .map((entry) => `${entry.product.name} : ${formatQuantity(entry.available, entry.product.unit)} en stock, ${formatQuantity(entry.quantity, entry.product.unit)} demandé(s) → ${formatQuantity(entry.missing, entry.product.unit)} à ajouter.`)
+          .join(' ');
+        const confirmed = await confirmDialog({
+          title: 'Stock insuffisant',
+          message: 'Certains produits n’ont pas assez de stock pour cette vente. Vous pouvez créer maintenant un mouvement d’ouverture, puis la vente sera enregistrée.',
+          details,
+          confirmLabel: 'Créer les entrées et vendre',
+        });
+        if (!confirmed) return false;
+        try {
+          for (const entry of shortages) {
+            await adjustStock({
+              productId: entry.product.id,
+              mode: 'in',
+              quantity: entry.missing,
+              unitCost: entry.product.cost,
+              date: values.date,
+              reason: 'opening',
+              note: `Stock d’ouverture créé lors d’une vente (${entry.missing} ${entry.product.unit || 'unité'}).`,
+            });
+          }
+          toast('Mouvement(s) d’ouverture enregistré(s).', 'info', { duration: 4000 });
+        } catch (error) {
+          toast(error && error.message ? error.message : 'Impossible d’ajouter le stock manquant.', 'error', { duration: 7000 });
+          return false;
+        }
       }
       const result = await runAction(
         () =>

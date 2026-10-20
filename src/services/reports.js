@@ -7,7 +7,7 @@
  * ------------------------------------------------------------------------- */
 
 import { FINANCE_RULES_TEXT } from '../config/constants.js';
-import { eachDay, toISODate } from '../shared/dates.js';
+import { eachDay, previousPeriod, toISODate } from '../shared/dates.js';
 import { roundMoney } from '../shared/format.js';
 import {
   activitySummary,
@@ -42,6 +42,31 @@ export function periodLabel(period, formatDate) {
   const from = formatDate ? formatDate(period.from) : period.from;
   const to = formatDate ? formatDate(period.to) : period.to;
   return `du ${from} au ${to}`;
+}
+
+/**
+ * Comparaison de la période affichée avec la période précédente de même durée
+ * (L11). Retourne null pour « tout l'historique ».
+ */
+export function comparePeriods(state, { activityId = '', period } = {}) {
+  const previous = previousPeriod(period);
+  if (!previous) return null;
+  const current = computeKpis(state, { activityId, period });
+  const before = computeKpis(state, { activityId, period: previous });
+  const metrics = [
+    { key: 'revenue', label: 'Chiffre d’affaires net' },
+    { key: 'grossMargin', label: 'Marge brute' },
+    { key: 'estimatedResult', label: 'Résultat estimé' },
+    { key: 'operatingExpenses', label: 'Dépenses d’exploitation' },
+    { key: 'cashIn', label: 'Encaissements' },
+  ].map((metric) => {
+    const currentValue = Number(current[metric.key] || 0);
+    const previousValue = Number(before[metric.key] || 0);
+    const delta = currentValue - previousValue;
+    const percent = previousValue === 0 ? null : delta / Math.abs(previousValue);
+    return { ...metric, current: currentValue, previous: previousValue, delta, percent };
+  });
+  return { previous, current, before, metrics };
 }
 
 /**

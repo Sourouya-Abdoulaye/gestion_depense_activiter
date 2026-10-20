@@ -7,17 +7,19 @@
  * activité et ses conventions.
  * ------------------------------------------------------------------------- */
 
-import { FINANCE_RULES_TEXT } from '../config/constants.js';
+import { FINANCE_RULES_TEXT, ACCOUNTING_DISCLAIMER } from '../config/constants.js';
 import { html, element, raw } from '../shared/dom.js';
-import { formatMoney, formatQuantity } from '../shared/format.js';
+import { formatMoney, formatPercent, formatQuantity } from '../shared/format.js';
 import { formatDate, formatMonthLabel } from '../shared/dates.js';
 import { getPeriod, getViewState } from '../shared/view-state.js';
 import { createPage } from '../shared/screen.js';
-import { button, kpiCard, noticePanel, pageHeader, sectionCard, toast } from '../shared/ui.js';
+import { button, confirmDialog, kpiCard, nextFrame, noticePanel, pageHeader, progressDialog, sectionCard, toast } from '../shared/ui.js';
+import { openModal } from '../shared/ui.js';
 import { chartBox, CHART_COLORS, Chart } from '../shared/charts.js';
 import { getState } from '../services/state.js';
-import { buildReport, periodLabel, reportToSections } from '../services/reports.js';
-import { exportReportCsv } from '../services/csv.js';
+import { buildReport, comparePeriods, periodLabel, reportToSections } from '../services/reports.js';
+import { simulateCostRecalculation } from '../services/recalc.js';
+import { exportAccountingCsv, exportReportCsv } from '../services/csv.js';
 
 export const meta = { path: 'rapports', title: 'Rapports' };
 
@@ -74,6 +76,77 @@ function printReport(report, activityName) {
   return true;
 }
 
+/* ----------------------- diagnostic du coût figé (L14) ------------------ */
+
+function openCostDiagnostic(state, period) {
+  const result = simulateCostRecalculation(state, { from: period?.from || '', to: period?.to || '' });
+  const body = element(html`
+    <div class="space-y-3">
+      <div class="grid gap-3 sm:grid-cols-3">
+        <div class="rounded-lg border border-line bg-canvas/60 p-3">
+          <p class="text-xs uppercase tracking-wide text-muted">Coût figé</p>
+          <p class="mt-1 font-semibold tabular-nums">${formatMoney(result.totalFrozen)}</p>
+        </div>
+        <div class="rounded-lg border border-line bg-canvas/60 p-3">
+          <p class="text-xs uppercase tracking-wide text-muted">Coût simulé</p>
+          <p class="mt-1 font-semibold tabular-nums">${formatMoney(result.totalRecalculated)}</p>
+        </div>
+        <div class="rounded-lg border border-line bg-canvas/60 p-3">
+          <p class="text-xs uppercase tracking-wide text-muted">Écart simulé</p>
+          <p class="mt-1 font-semibold tabular-nums ${result.difference > 0 ? 'text-danger' : result.difference < 0 ? 'text-brand' : ''}">
+            ${result.difference > 0 ? '+' : ''}${formatMoney(result.difference)}
+          </p>
+        </div>
+      </div>
+      ${result.rows.length === 0
+        ? html`<p class="text-sm text-muted">Aucun écart : les coûts figés correspondent au rejeu des mouvements de stock sur la période (${result.linesCount} ligne(s) de vente analysée(s)).</p>`
+        : html`
+            <div class="table-wrap">
+              <table class="table table-stack">
+                <thead>
+                  <tr>
+                    <th>Date</th><th>Vente</th><th>Produit</th><th class="text-right">Qté</th>
+                    <th class="text-right">Coût figé</th><th class="text-right">Coût simulé</th><th class="text-right">Écart</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${result.rows.slice(0, 100).map(
+                    (row) => html`
+                      <tr>
+                        <td data-label="Date">${formatDate(row.date)}</td>
+                        <td data-label="Vente">${row.reference}</td>
+                        <td data-label="Produit">${row.product}</td>
+                        <td data-label="Qté" class="text-right tabular-nums">${formatQuantity(row.quantity)}</td>
+                        <td data-label="Coût figé" class="text-right tabular-nums">${formatMoney(row.frozen)}</td>
+                        <td data-label="Coût simulé" class="text-right tabular-nums">${formatMoney(row.recalculated)}</td>
+                        <td data-label="Écart" class="text-right tabular-nums ${row.difference > 0 ? 'text-danger' : 'text-brand'}">
+                          ${row.difference > 0 ? '+' : ''}${formatMoney(row.difference)}
+                        </td>
+                      </tr>
+                    `,
+                  )}
+                </tbody>
+              </table>
+            </div>
+            ${result.rows.length > 100 ? html`<p class="text-xs text-muted">Affichage limité à 100 écarts sur ${result.rows.length}. Exportez le rapport pour analyser le détail.</p>` : ''}
+          `}
+      <div class="rounded-lg border border-warning/30 bg-amber-50 p-3 text-xs text-ink">
+        <p class="font-semibold text-warning">Simulation en lecture seule</p>
+        <p class="mt-1">
+          Le coût figé est un choix de fiabilité : une vente passée ne change pas quand un prix d’achat est corrigé plus tard.
+          Ce diagnostic montre ce qu’un recalcul donnerait ; il ne modifie ni les ventes, ni les mouvements de stock, ni les marges déjà publiées.
+        </p>
+      </div>
+    </div>
+  `);
+  openModal({
+    title: 'Diagnostic du coût de revient',
+    description: `${periodLabel(period, (value) => formatDate(value))} — ${result.salesCount} vente(s), ${result.linesCount} ligne(s).`,
+    size: 'lg',
+    content: body,
+  });
+}
+
 /* --------------------------------- rendu -------------------------------- */
 
 function sectionTable(section) {
@@ -126,26 +199,83 @@ function paint(ctx, api) {
         button({
           label: 'Exporter CSV',
           iconName: 'download',
-          onClick: () => {
-            const count = exportReportCsv(report, { activityName });
-            if (count === 0) {
-              toast('Aucune donnée à exporter sur cette période.', 'warning');
-              return;
+          onClick: async () => {
+            const progress = progressDialog({ title: 'Export CSV', message: 'Préparation des sections…' });
+            try {
+              progress.update(20);
+              await nextFrame();
+              const count = exportReportCsv(report, { activityName });
+              progress.update(100);
+              if (count === 0) {
+                toast('Aucune donnée à exporter sur cette période.', 'warning');
+                return;
+              }
+              toast(`${count} fichier(s) CSV générés (un par section non vide).`, 'success', { duration: 6000 });
+            } catch (error) {
+              toast(error && error.message ? error.message : 'Export CSV impossible.', 'error', { duration: 7000 });
+            } finally {
+              setTimeout(() => progress.close(), 350);
             }
-            toast(`${count} fichier(s) CSV générés (un par section non vide).`, 'success', { duration: 6000 });
           },
         }),
         button({
           label: 'Exporter PDF',
           iconName: 'download',
           onClick: async () => {
+            const rows =
+              report.salesTable.length +
+              report.purchasesTable.length +
+              report.topProducts.length +
+              report.expensesByCategory.length +
+              report.receivables.list.length +
+              report.payables.list.length;
+            if (rows > 3000) {
+              const proceed = await confirmDialog({
+                title: 'Rapport volumineux',
+                message: `${rows} lignes seront mises en page dans le PDF. Sur un appareil modeste, cela peut prendre plusieurs secondes.`,
+                details: 'L’export CSV est plus rapide et mieux adapté aux gros volumes. Vous pouvez aussi réduire la période.',
+                confirmLabel: 'Générer quand même',
+                cancelLabel: 'Utiliser le CSV',
+              });
+              if (!proceed) return;
+            }
+            const progress = progressDialog({ title: 'Génération du PDF', message: 'Mise en page du rapport…' });
             try {
+              progress.update(20);
+              await nextFrame();
               const { downloadReportPdf } = await import('../services/documents.js');
+              progress.update(55, 'Écriture des tableaux…');
+              await nextFrame();
               const filename = downloadReportPdf(report, { settings: state.settings, activityName });
+              progress.update(100, 'Terminé.');
               toast(`Rapport PDF enregistré : ${filename}`, 'success');
             } catch (error) {
               toast(error && error.message ? error.message : 'Génération du PDF impossible.', 'error', { duration: 6000 });
+            } finally {
+              setTimeout(() => progress.close(), 350);
             }
+          },
+        }),
+        button({
+          label: 'Export comptable',
+          iconName: 'book',
+          title: 'Journal simplifié en partie double, à transmettre à un comptable',
+          onClick: () => {
+            const result = exportAccountingCsv({
+              state,
+              activityId: view.activityId,
+              activityName,
+              period,
+            });
+            if (result.lines === 0) {
+              toast('Aucune écriture comptable sur cette période.', 'warning');
+              return;
+            }
+            toast(
+              `Journal comptable exporté : ${result.lines} ligne(s), débit ${formatMoney(result.totals.debit)} = crédit ${formatMoney(result.totals.credit)}${result.balanced ? '' : ' (déséquilibre à vérifier)'}.`,
+              result.balanced ? 'success' : 'warning',
+              { duration: 8000 },
+            );
           },
         }),
         button({
@@ -162,15 +292,73 @@ function paint(ctx, api) {
 
   const kpis = report.kpis;
   wrapper.append(
+    noticePanel({
+      tone: 'warning',
+      title: 'Rapport de pilotage',
+      message: ACCOUNTING_DISCLAIMER,
+    }),
+  );
+  wrapper.append(
     element(html`
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        ${raw(kpiCard({ label: 'Chiffre d’affaires net', value: formatMoney(kpis.revenue), hint: `${kpis.salesCount} vente(s)`, iconName: 'receipt' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Marge brute', value: formatMoney(kpis.grossMargin), hint: `Coût des produits : ${formatMoney(kpis.costOfGoodsSold)}`, tone: kpis.grossMargin >= 0 ? 'positive' : 'negative', iconName: 'chart' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Résultat estimé', value: formatMoney(kpis.estimatedResult), hint: `Dépenses d’exploitation : ${formatMoney(kpis.operatingExpenses)}`, tone: kpis.estimatedResult >= 0 ? 'positive' : 'negative', iconName: 'banknote' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Trésorerie', value: formatMoney(kpis.treasury), hint: `Stock : ${formatMoney(kpis.stockValue)}`, iconName: 'wallet' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Chiffre d’affaires net', value: formatMoney(kpis.revenue), hint: `${kpis.salesCount} vente(s)`, iconName: 'receipt', tooltip: 'Ventes validées, nettes des remises et retours de la période.' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Marge brute', value: formatMoney(kpis.grossMargin), hint: `Coût des produits : ${formatMoney(kpis.costOfGoodsSold)}`, tone: kpis.grossMargin >= 0 ? 'positive' : 'negative', iconName: 'chart', tooltip: 'Chiffre d’affaires net − coût moyen pondéré des produits vendus (figé à la vente).' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Résultat estimé', value: formatMoney(kpis.estimatedResult), hint: `Dépenses d’exploitation : ${formatMoney(kpis.operatingExpenses)}`, tone: kpis.estimatedResult >= 0 ? 'positive' : 'negative', iconName: 'banknote', tooltip: 'Marge brute − dépenses d’exploitation. Hors investissements, approvisionnements déjà dans le coût et retraits personnels.' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Trésorerie', value: formatMoney(kpis.treasury), hint: `Stock : ${formatMoney(kpis.stockValue)}`, iconName: 'wallet', tooltip: 'Argent réellement disponible sur les comptes à la fin de la période. Différent du bénéfice et du budget.' }).outerHTML)}
       </div>
     `),
   );
+
+  /* ------------------------- comparaison de périodes -------------------- */
+  const comparison = comparePeriods(state, { activityId: view.activityId, period });
+  if (comparison) {
+    const toneClass = (value, invert = false) => {
+      if (value === 0) return 'text-muted';
+      const positive = invert ? value < 0 : value > 0;
+      return positive ? 'text-brand' : 'text-danger';
+    };
+    wrapper.append(
+      sectionCard({
+        title: 'Comparaison avec la période précédente',
+        description: `${periodLabel(comparison.previous, (value) => formatDate(value))} — même durée (L11).`,
+        content: element(html`
+          <div class="table-wrap">
+            <table class="table table-stack">
+              <thead>
+                <tr>
+                  <th>Indicateur</th>
+                  <th class="text-right">Période affichée</th>
+                  <th class="text-right">Période précédente</th>
+                  <th class="text-right">Écart</th>
+                  <th class="text-right">Variation</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${comparison.metrics.map(
+                  (metric) => html`
+                    <tr>
+                      <td data-label="Indicateur" class="font-medium">${metric.label}</td>
+                      <td data-label="Période affichée" class="text-right tabular-nums">${formatMoney(metric.current)}</td>
+                      <td data-label="Période précédente" class="text-right tabular-nums text-muted">${formatMoney(metric.previous)}</td>
+                      <td data-label="Écart" class="text-right tabular-nums ${toneClass(metric.delta, metric.key === 'operatingExpenses')}">
+                        ${metric.delta > 0 ? '+' : ''}${formatMoney(metric.delta)}
+                      </td>
+                      <td data-label="Variation" class="text-right tabular-nums ${toneClass(metric.delta, metric.key === 'operatingExpenses')}">
+                        ${metric.percent === null ? '—' : `${metric.percent > 0 ? '+' : ''}${formatPercent(metric.percent)}`}
+                      </td>
+                    </tr>
+                  `,
+                )}
+              </tbody>
+            </table>
+          </div>
+          <p class="mt-2 text-xs text-muted">
+            Une variation n’est pas un jugement : une hausse des dépenses peut être un investissement utile. Les périodes sans historique affichent « — ».
+          </p>
+        `),
+      }),
+    );
+  }
 
   /* ------------------------------- graphique ---------------------------- */
   const monthly = report.series.monthly || [];
@@ -219,6 +407,29 @@ function paint(ctx, api) {
     const table = sectionTable(section);
     if (table) wrapper.append(table);
   }
+
+  /* ------------------------ diagnostic coût figé (L14) ------------------ */
+  const diagnosticContent = element(html`
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <p class="max-w-2xl text-sm text-muted">
+        Le coût d’achat des produits vendus est figé au moment de la vente. Lancez un diagnostic pour comparer
+        ce coût à un recalcul sur la période, sans modifier vos données.
+      </p>
+    </div>
+  `);
+  const diagnosticButton = button({
+    label: 'Lancer le diagnostic',
+    iconName: 'calculator',
+    onClick: () => openCostDiagnostic(state, report.period),
+  });
+  diagnosticContent.append(diagnosticButton);
+  wrapper.append(
+    sectionCard({
+      title: 'Coût de revient figé',
+      description: 'Outil de contrôle en lecture seule (L14).',
+      content: diagnosticContent,
+    }),
+  );
 
   wrapper.append(
     noticePanel({

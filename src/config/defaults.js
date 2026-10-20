@@ -17,6 +17,7 @@ export function emptyState() {
     products: [],
     customers: [],
     suppliers: [],
+    employees: [],
     purchases: [],
     sales: [],
     returns: [],
@@ -43,7 +44,29 @@ export function defaultSettings(now = new Date().toISOString()) {
     allowNegativeStock: false,
     onboardingDone: false,
     currentActivityId: '',
+    /* Identité et documents (L13) */
+    shopPhone: '',
+    shopAddress: '',
+    shopTaxId: '',
+    receiptTemplate: 'classic',
+    receiptFooter: 'Merci de votre visite.',
+    receiptShowLogo: true,
+    /* Sauvegardes (L1, L2) */
     lastBackupAt: '',
+    backupReminderDays: 7,
+    autoBackupOnOpen: false,
+    backupSnoozedUntil: '',
+    backupSnoozedAt: '',
+    /* Verrouillage local (L6) */
+    lockEnabled: false,
+    lockPinHash: '',
+    lockPinSalt: '',
+    lockIterations: 210000,
+    lockTimeoutMinutes: 5,
+    lockOnHidden: true,
+    lockUpdatedAt: '',
+    /* Affichage (L15) : null = automatique, 0 = sans centimes, 2 = avec centimes */
+    moneyDecimals: null,
     createdAt: now,
     updatedAt: now,
   };

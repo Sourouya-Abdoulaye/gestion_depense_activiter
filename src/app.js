@@ -5,14 +5,25 @@
  * ------------------------------------------------------------------------- */
 
 import { APP_VERSION, ROUTES } from './config/constants.js';
-import { html, element, qs, mount, raw } from './shared/dom.js';
+import { html, element, qs, mount, raw, downloadFile } from './shared/dom.js';
 import { icon } from './shared/icons.js';
 import { toast, runAction } from './shared/ui.js';
 import { navigate, registerRoutes, render, startRouter, currentRoute } from './shared/router.js';
-import { getState, currentActivity, getSettings, setCurrentActivity, subscribe } from './services/state.js';
+import { getState, currentActivity, getSettings, setCurrentActivity, subscribe, saveSettings, markBackupExported } from './services/state.js';
 import { lowStockAlerts, computeStockState } from './services/stock.js';
 import { receivableList, payableList } from './services/finance.js';
 import { resetViewState, setViewState } from './shared/view-state.js';
+import {
+  backupReminderMessage,
+  backupStatus,
+  getEnvironmentStatus,
+  isBackupReminderSnoozed,
+  requestPersistentStorage,
+  snoozeBackupReminder,
+} from './services/environment.js';
+import { buildBackup, buildBackupFilename } from './services/backup.js';
+import { exitDemoMode, isDemoMode } from './services/demo.js';
+import { lockIsEnabled } from './services/lock.js';
 
 /* --------------------------- enregistrement ------------------------------ */
 
@@ -27,6 +38,8 @@ const MODULE_LOADERS = {
   tresorerie: () => import('./modules/cash.js'),
   clients: () => import('./modules/customers.js'),
   fournisseurs: () => import('./modules/suppliers.js'),
+  employes: () => import('./modules/employees.js'),
+  imports: () => import('./modules/imports.js'),
   rapports: () => import('./modules/reports.js'),
   rentabilite: () => import('./modules/profitability.js'),
   parametres: () => import('./modules/settings.js'),
@@ -181,22 +194,142 @@ function renderNetStatus() {
   badge.classList.toggle('badge-neutral', online);
 }
 
-function renderStorageBanner() {
+/* --------------------- bandeau d'état et sauvegardes -------------------- */
+
+let environmentCache = null;
+let statusToken = 0;
+
+/** Exporte immédiatement une sauvegarde depuis le bandeau (L2). */
+function exportBackupFromBanner() {
+  try {
+    const payload = buildBackup(getState());
+    const filename = buildBackupFilename();
+    downloadFile(filename, JSON.stringify(payload, null, 2), 'application/json');
+    void markBackupExported();
+    toast(`Sauvegarde enregistrée : ${filename}`, 'success', { duration: 6000 });
+  } catch (error) {
+    toast(error && error.message ? error.message : 'Export impossible.', 'error', { duration: 7000 });
+  }
+}
+
+/** Demande le stockage persistant depuis le bandeau. */
+async function askPersistentStorage() {
+  const granted = await requestPersistentStorage();
+  environmentCache = null;
+  toast(
+    granted ? 'Stockage persistant accordé : les données sont mieux protégées contre l’éviction.' : 'Le navigateur n’a pas accordé le stockage persistant.',
+    granted ? 'success' : 'warning',
+    { duration: 6000 },
+  );
+  refreshShell();
+}
+
+/**
+ * Bandeau d'état : stockage éphémère (L5), installation PWA (L5/L20),
+ * rappel de sauvegarde (L1/L2) et stockage persistant (L5).
+ */
+async function paintStatusBar() {
+  const token = ++statusToken;
   const bar = qs('#status-bar');
+  if (!bar) return;
+
   const settings = getSettings();
-  const late = !settings.lastBackupAt;
-  if (!late) {
-    bar.classList.add('hidden');
+  if (!environmentCache) {
+    try {
+      environmentCache = await getEnvironmentStatus();
+    } catch {
+      environmentCache = null;
+    }
+  }
+  if (token !== statusToken) return;
+  const env = environmentCache;
+
+  const messages = [];
+  if (isDemoMode()) {
+    messages.push({
+      tone: 'info',
+      text: 'Mode démonstration : les données affichées sont fictives et stockées séparément. Aucune vraie donnée n’est utilisée.',
+      actions: [{ label: 'Quitter la démo', action: 'exit-demo', primary: true }],
+    });
+  }
+  if (env && env.ephemeral) {
+    messages.push({
+      tone: 'danger',
+      text: 'Stockage temporaire probable (navigation privée ?) : vos données peuvent disparaître à la fermeture du navigateur. Exportez une sauvegarde.',
+      actions: [
+        { label: 'Exporter', action: 'export', primary: true },
+        { label: 'En savoir plus', href: '#/aide' },
+      ],
+    });
+  }
+  if (env && env.ios && !env.standalone) {
+    messages.push({
+      tone: 'info',
+      text: 'Sur iPhone/iPad, ajoutez Mon Commerce à l’écran d’accueil pour éviter que Safari efface les données.',
+      actions: [{ label: 'Comment installer', href: '#/aide' }],
+    });
+  }
+  const backup = backupStatus(settings);
+  if (backup.due && !isBackupReminderSnoozed(settings)) {
+    messages.push({
+      tone: 'warning',
+      text: backupReminderMessage(settings),
+      actions: [
+        { label: 'Exporter maintenant', action: 'export', primary: true },
+        { label: 'Plus tard', action: 'snooze' },
+      ],
+    });
+  }
+  if (env && env.persistedSupported && !env.persisted && !env.ephemeral) {
+    messages.push({
+      tone: 'neutral',
+      text: 'Le navigateur peut évincer vos données pour libérer de l’espace. Demandez le stockage persistant.',
+      actions: [{ label: 'Demander', action: 'persist' }],
+    });
+  }
+
+  if (messages.length === 0) {
+    bar.hidden = true;
+    bar.className = 'hidden items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium';
     return;
   }
-  bar.className = 'flex items-center justify-center gap-2 bg-warning px-3 py-1.5 text-xs font-medium text-white';
+
+  const toneClass = {
+    danger: 'bg-danger text-white',
+    warning: 'bg-warning text-white',
+    info: 'bg-brand-dark text-white',
+    neutral: 'bg-canvas text-ink border-b border-line',
+  };
+  bar.hidden = false;
+  bar.className = 'no-print flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-3 py-1.5 text-xs font-medium';
   mount(
     bar,
-    html`
-      <span>Aucune sauvegarde exportée pour l'instant — vos données restent dans ce navigateur uniquement.</span>
-      <a href="#/parametres" class="font-bold underline">Exporter une sauvegarde</a>
-    `,
+    messages.map(
+      (message, index) => html`
+        <div class="flex flex-wrap items-center gap-2 ${toneClass[message.tone] || toneClass.neutral} ${messages.length > 1 ? 'w-full justify-center rounded px-2 py-1 sm:w-auto' : ''}" data-status="${index}">
+          <span>${message.text}</span>
+          ${(message.actions || []).map((action) =>
+            action.href
+              ? html`<a href="${action.href}" class="font-bold underline underline-offset-2">${action.label}</a>`
+              : html`<button type="button" class="rounded border border-current/40 px-2 py-0.5 font-bold ${action.primary ? 'bg-white/15' : ''}" data-status-action="${action.action}" data-status-index="${index}">${action.label}</button>`,
+          )}
+        </div>
+      `,
+    ),
   );
+
+  for (const button of bar.querySelectorAll('[data-status-action]')) {
+    button.addEventListener('click', () => {
+      if (button.dataset.statusAction === 'export') exportBackupFromBanner();
+      else if (button.dataset.statusAction === 'exit-demo') exitDemoMode();
+      else if (button.dataset.statusAction === 'snooze') {
+        runAction(() => saveSettings(snoozeBackupReminder(1)), { silent: true }).then(() => refreshShell());
+        toast('Rappel reporté à demain.', 'info', { duration: 3000 });
+      } else if (button.dataset.statusAction === 'persist') {
+        void askPersistentStorage();
+      }
+    });
+  }
 }
 
 /* -------------------------------- actions ------------------------------- */
@@ -208,10 +341,14 @@ export function refreshShell() {
   renderMobileNavigation();
   renderActivitySwitcher();
   renderSidebarSummary();
-  renderStorageBanner();
+  void paintStatusBar();
   const settings = getSettings();
   qs('#shop-name-top').textContent = settings.shopName || 'Gestion commerciale';
   qs('#app-version').textContent = APP_VERSION;
+  const lockButton = qs('#lock-now');
+  if (lockButton) {
+    lockButton.hidden = !lockIsEnabled(settings);
+  }
 }
 
 /* -------------------------------- démarrage ----------------------------- */

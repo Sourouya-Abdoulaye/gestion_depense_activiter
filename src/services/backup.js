@@ -19,6 +19,7 @@ export const COLLECTIONS = [
   'products',
   'customers',
   'suppliers',
+  'employees',
   'purchases',
   'sales',
   'returns',
@@ -32,8 +33,9 @@ export const COLLECTIONS = [
 export const EXPORT_FILE_PREFIX = 'mon-commerce-sauvegarde';
 
 /** Nom de fichier daté et trié naturellement : mon-commerce-sauvegarde-2026-10-18.json */
-export function buildBackupFilename(reference = new Date()) {
-  return `${EXPORT_FILE_PREFIX}-${toISODate(reference)}.json`;
+export function buildBackupFilename(reference = new Date(), { encrypted = false } = {}) {
+  const suffix = encrypted ? '-chiffree' : '';
+  return `${EXPORT_FILE_PREFIX}${suffix}-${toISODate(reference)}.json`;
 }
 
 /**
@@ -186,19 +188,34 @@ export function validateBackup(payload) {
  * Fusion contrôlée : les enregistrements de la sauvegarde complètent et
  * remplacent, par identifiant, les enregistrements existants. Rien n'est
  * supprimé et les réponses aux identifiants inconnus sont conservées.
+ *
+ * Depuis la version 1.1, la fusion arbitre par horodatage : si les deux
+ * versions possèdent un `updatedAt` (ou `createdAt`), la plus récente gagne.
+ * Une sauvegarde plus ancienne ne peut donc plus écraser une saisie récente.
  */
-export function mergeBackup(current = {}, incoming = {}) {
+export function mergeBackup(current = {}, incoming = {}, { preferNewest = true } = {}) {
   const result = {};
-  const stats = { added: 0, updated: 0, kept: 0 };
+  const stats = { added: 0, updated: 0, kept: 0, ignored: 0, identical: 0 };
   for (const collection of COLLECTIONS) {
     const existing = new Map((current[collection] || []).map((record) => [record.id, record]));
     const merged = [...(current[collection] || [])];
     let added = 0;
     let updated = 0;
+    let ignored = 0;
+    let identical = 0;
     for (const record of incoming[collection] || []) {
       if (existing.has(record.id)) {
         const index = merged.findIndex((entry) => entry.id === record.id);
-        merged[index] = { ...merged[index], ...record };
+        const currentRecord = merged[index];
+        if (preferNewest && isOlderThan(record, currentRecord)) {
+          ignored += 1;
+          continue;
+        }
+        if (sameRecord(currentRecord, record)) {
+          identical += 1;
+          continue;
+        }
+        merged[index] = { ...currentRecord, ...record };
         updated += 1;
       } else {
         merged.push({ ...record });
@@ -209,10 +226,82 @@ export function mergeBackup(current = {}, incoming = {}) {
     result[collection] = merged;
     stats.added += added;
     stats.updated += updated;
+    stats.ignored += ignored;
+    stats.identical += identical;
     stats.kept += (current[collection] || []).length;
   }
   result.settings = incoming.settings ? { ...(current.settings || {}), ...incoming.settings } : current.settings || null;
   return { data: result, stats };
+}
+
+/** Horodatage de comparaison d'un enregistrement (ISO complet ou date métier). */
+export function recordTimestamp(record = {}) {
+  const stamp = record.updatedAt || record.createdAt || record.date || '';
+  const parsed = Date.parse(stamp);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+/** L'enregistrement entrant est-il strictement plus ancien que l'existant ? */
+export function isOlderThan(incoming, current) {
+  const incomingTime = recordTimestamp(incoming);
+  const currentTime = recordTimestamp(current);
+  if (!incomingTime || !currentTime) return false;
+  return incomingTime < currentTime;
+}
+
+/** Deux enregistrements portent-ils exactement les mêmes données métier ? */
+function sameRecord(a, b) {
+  if (!a || !b) return false;
+  const ignore = new Set(['updatedAt', 'createdAt']);
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const key of keys) {
+    if (ignore.has(key)) continue;
+    if (JSON.stringify(a[key]) !== JSON.stringify(b[key])) return false;
+  }
+  return true;
+}
+
+/**
+ * Compare une sauvegarde à l'état courant, sans rien écrire.
+ * Sert à l'aperçu détaillé avant import (L3).
+ */
+export function diffBackup(current = {}, incoming = {}) {
+  const collections = {};
+  let added = 0;
+  let updated = 0;
+  let identical = 0;
+  let older = 0;
+  for (const collection of COLLECTIONS) {
+    const existing = new Map((current[collection] || []).map((record) => [record.id, record]));
+    const entry = { added: 0, updated: 0, identical: 0, older: 0, total: 0 };
+    for (const record of incoming[collection] || []) {
+      entry.total += 1;
+      const present = existing.get(record.id);
+      if (!present) entry.added += 1;
+      else if (isOlderThan(record, present)) entry.older += 1;
+      else if (sameRecord(present, record)) entry.identical += 1;
+      else entry.updated += 1;
+    }
+    collections[collection] = entry;
+    added += entry.added;
+    updated += entry.updated;
+    identical += entry.identical;
+    older += entry.older;
+  }
+  const currentSettings = current.settings || {};
+  const incomingSettings = incoming.settings || {};
+  const settingsChanged = Object.keys(incomingSettings).filter(
+    (key) => key !== 'id' && JSON.stringify(incomingSettings[key]) !== JSON.stringify(currentSettings[key]),
+  );
+  return {
+    collections,
+    totals: { added, updated, identical, older },
+    settingsChanged,
+    deletesOnReplace: COLLECTIONS.reduce(
+      (total, collection) => total + (current[collection] || []).filter((record) => !(incoming[collection] || []).some((entry) => entry.id === record.id)).length,
+      0,
+    ),
+  };
 }
 
 /** Remplacement explicite : les données importées remplacent tout le reste. */

@@ -5,8 +5,8 @@
  * ------------------------------------------------------------------------- */
 
 export const APP_NAME = 'Mon Commerce';
-export const APP_VERSION = '1.0.0';
-export const SCHEMA_VERSION = 1;
+export const APP_VERSION = '1.2.0';
+export const SCHEMA_VERSION = 4;
 
 export const CURRENCY_SYMBOL = 'FCFA';
 export const CURRENCY_CODE = 'XOF';
@@ -159,6 +159,8 @@ export const ROUTES = [
   { path: 'tresorerie', label: 'Trésorerie', icon: 'banknote', group: 'Finances', mobile: true },
   { path: 'clients', label: 'Clients & créances', icon: 'users', group: 'Finances' },
   { path: 'fournisseurs', label: 'Fournisseurs & dettes', icon: 'truck', group: 'Finances' },
+  { path: 'employes', label: 'Employés & paie', icon: 'users', group: 'Finances' },
+  { path: 'imports', label: 'Import de relevés', icon: 'upload', group: 'Finances' },
   { path: 'rapports', label: 'Rapports', icon: 'chart', group: 'Analyse', mobile: true },
   { path: 'rentabilite', label: 'Assistant de rentabilité', icon: 'calculator', group: 'Analyse' },
   { path: 'parametres', label: 'Paramètres & sauvegardes', icon: 'settings', group: 'Analyse' },
@@ -172,6 +174,14 @@ export const STORAGE_WARNING = [
   'Supprimer les données du navigateur, perdre l’appareil ou changer d’appareil peut entraîner la perte de vos données.',
   'Exportez régulièrement une sauvegarde JSON depuis « Paramètres & sauvegardes » et conservez-la en lieu sûr (clé USB, e-mail, cloud).',
 ].join(' ');
+
+/**
+ * Avertissement comptable (L9) : repris dans l'accueil, les rapports, le guide
+ * et les paramètres. L'outil aide à piloter, il ne produit pas de comptabilité
+ * légale (pas de plan comptable complet, ni TVA, ni amortissements).
+ */
+export const ACCOUNTING_DISCLAIMER =
+  'Mon Commerce est un outil de pilotage : les montants sont des estimations calculées à partir de vos saisies. Ce n’est pas une comptabilité certifiée (ni TVA, ni amortissements, ni bilan). Pour vos déclarations, transmettez vos exports à un comptable.';
 
 export const FINANCE_RULES_TEXT = [
   'Chiffre d’affaires : ventes validées, nettes des remises et des retours.',

@@ -5,8 +5,14 @@
  * données du commerce restent dans IndexedDB sur cet appareil.
  * ------------------------------------------------------------------------- */
 
-const CACHE_VERSION = 'mon-commerce-v1';
-const PRECACHE_URLS = ['./', './index.html', './manifest.webmanifest', './icons/icon.svg', './icons/icon-maskable.svg'];
+const CACHE_VERSION = 'mon-commerce-v3';
+const PRECACHE_URLS = [
+  './',
+  './index.html',
+  './manifest.webmanifest',
+  './icons/icon.svg',
+  './icons/icon-maskable.svg',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -94,5 +100,19 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+  // Pré-cache des ressources réellement chargées (modules JS, styles, polices) :
+  // améliore l'ouverture hors connexion dès la première visite (L20).
+  if (event.data && event.data.type === 'CACHE_URLS' && Array.isArray(event.data.urls)) {
+    event.waitUntil(
+      (async () => {
+        const cache = await caches.open(CACHE_VERSION);
+        await Promise.all(
+          event.data.urls
+            .filter((url) => typeof url === 'string' && url.startsWith(self.location.origin))
+            .map((url) => cache.add(new Request(url, { cache: 'reload' })).catch(() => undefined)),
+        );
+      })(),
+    );
   }
 });
