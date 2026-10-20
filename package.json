@@ -1,6 +1,6 @@
 {
   "name": "mon-commerce",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Mon Commerce — application de gestion commerciale et financière pour petits commerçants (PWA, français, FCFA, hors ligne).",
   "type": "module",
   "private": true,
