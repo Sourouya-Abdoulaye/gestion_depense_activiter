@@ -24,6 +24,7 @@ import {
 import { buildBackup, buildBackupFilename } from './services/backup.js';
 import { exitDemoMode, isDemoMode } from './services/demo.js';
 import { lockIsEnabled } from './services/lock.js';
+import { mountAssistantLauncher } from './shared/assistant-chat.js';
 
 /* --------------------------- enregistrement ------------------------------ */
 
@@ -104,6 +105,20 @@ function renderNavigation() {
     .join('');
 
   mount(qs('#nav-items'), markup);
+}
+
+/** Garde l'entrée active de la barre latérale visible, sans la recentrer brutalement. */
+function revealActiveNav() {
+  const sidebar = qs('#sidebar');
+  const active = qs('#nav-items .nav-link-active');
+  if (!sidebar || !active || window.innerWidth < 1024) return;
+  const sidebarRect = sidebar.getBoundingClientRect();
+  const linkRect = active.getBoundingClientRect();
+  if (linkRect.bottom > sidebarRect.bottom - 8) {
+    sidebar.scrollTop += linkRect.bottom - sidebarRect.bottom + 8;
+  } else if (linkRect.top < sidebarRect.top + 8) {
+    sidebar.scrollTop -= sidebarRect.top - linkRect.top + 8;
+  }
 }
 
 function renderMobileNavigation() {
@@ -357,6 +372,9 @@ export function mountShell() {
   registerRoutes(MODULE_LOADERS);
   refreshShell();
 
+  const assistant = mountAssistantLauncher({ onNavigate: navigate });
+  assistant.setVisible(currentRoute() !== 'aide');
+
   const toggle = qs('#nav-toggle');
   const sidebar = qs('#sidebar');
   const backdrop = qs('#nav-backdrop');
@@ -405,10 +423,12 @@ export function mountShell() {
   subscribe(() => refreshShell());
 
   startRouter({
-    onRouteChange: () => {
+    onRouteChange: (target) => {
       renderNavigation();
       renderMobileNavigation();
+      revealActiveNav();
       closeNav();
+      assistant.setVisible(target !== 'aide');
     },
   });
 }

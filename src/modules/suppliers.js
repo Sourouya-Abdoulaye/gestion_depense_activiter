@@ -172,10 +172,10 @@ function paint(ctx) {
   wrapper.append(
     element(html`
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        ${raw(kpiCard({ label: 'Fournisseurs', value: String(state.suppliers.length), hint: 'Fiches enregistrées', iconName: 'truck' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Dettes totales', value: formatMoney(totalDue), hint: 'Toutes dettes réceptionnées confondues', tone: totalDue > 0 ? 'warning' : 'neutral', iconName: 'wallet' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Fournisseurs à payer', value: String(indebtedSuppliers), hint: 'Avec au moins une dette ouverte', iconName: 'chart' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Achats non soldés', value: String(payables.length), hint: 'Documents encore dus', iconName: 'cart' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Fournisseurs', value: String(state.suppliers.length), hint: 'Fiches', iconName: 'truck' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Dettes totales', value: formatMoney(totalDue), hint: 'À payer', tone: totalDue > 0 ? 'warning' : 'neutral', iconName: 'wallet' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Fournisseurs à payer', value: String(indebtedSuppliers), hint: 'Avec dette', iconName: 'chart' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Achats non soldés', value: String(payables.length), hint: 'Non soldés', iconName: 'cart' }).outerHTML)}
       </div>
     `),
   );

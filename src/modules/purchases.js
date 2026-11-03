@@ -555,10 +555,10 @@ function paint(ctx, api) {
   wrapper.append(
     element(html`
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        ${raw(kpiCard({ label: 'Achats réceptionnés', value: formatMoney(receivedTotal), hint: 'Période et activité filtrées', iconName: 'cart' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Dettes fournisseurs', value: formatMoney(payables), hint: 'Hors période : dettes encore ouvertes', tone: payables > 0 ? 'warning' : 'neutral', iconName: 'truck' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Commandes en attente', value: String(orderedCount), hint: 'Stock non encore augmenté', iconName: 'clock' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Paiements versés', value: formatMoney(paidTotal), hint: 'Sur les achats de la période', iconName: 'wallet' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Achats réceptionnés', value: formatMoney(receivedTotal), hint: 'Sur la période', iconName: 'cart' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Dettes fournisseurs', value: formatMoney(payables), hint: 'Dettes ouvertes', tone: payables > 0 ? 'warning' : 'neutral', iconName: 'truck' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Commandes en attente', value: String(orderedCount), hint: 'Stock non reçu', iconName: 'clock' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Paiements versés', value: formatMoney(paidTotal), hint: 'Sur la période', iconName: 'wallet' }).outerHTML)}
       </div>
     `),
   );

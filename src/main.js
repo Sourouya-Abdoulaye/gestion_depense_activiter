@@ -73,7 +73,7 @@ function showOnboarding() {
           <li>Ajoutez vos produits avec leur prix d'achat et leur prix de vente.</li>
           <li>Enregistrez vos achats, puis vos ventes : stock, trésorerie et marges se calculent automatiquement.</li>
           <li>Exportez régulièrement une sauvegarde JSON depuis « Paramètres & sauvegardes ».</li>
-          <li>Un doute sur un chiffre ? Ouvrez « Guide &amp; aide » : formules, vocabulaire et exemples y sont expliqués.</li>
+          <li>Un doute sur un chiffre ? Ouvrez « Assistant &amp; aide » : posez votre question, la réponse s’appuie sur le guide et sur vos données.</li>
         </ol>
       </div>
 

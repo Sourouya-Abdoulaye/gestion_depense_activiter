@@ -301,10 +301,10 @@ function paint(ctx, api) {
   wrapper.append(
     element(html`
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        ${raw(kpiCard({ label: 'Chiffre d’affaires net', value: formatMoney(kpis.revenue), hint: `${kpis.salesCount} vente(s)`, iconName: 'receipt', tooltip: 'Ventes validées, nettes des remises et retours de la période.' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Marge brute', value: formatMoney(kpis.grossMargin), hint: `Coût des produits : ${formatMoney(kpis.costOfGoodsSold)}`, tone: kpis.grossMargin >= 0 ? 'positive' : 'negative', iconName: 'chart', tooltip: 'Chiffre d’affaires net − coût moyen pondéré des produits vendus (figé à la vente).' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Résultat estimé', value: formatMoney(kpis.estimatedResult), hint: `Dépenses d’exploitation : ${formatMoney(kpis.operatingExpenses)}`, tone: kpis.estimatedResult >= 0 ? 'positive' : 'negative', iconName: 'banknote', tooltip: 'Marge brute − dépenses d’exploitation. Hors investissements, approvisionnements déjà dans le coût et retraits personnels.' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Trésorerie', value: formatMoney(kpis.treasury), hint: `Stock : ${formatMoney(kpis.stockValue)}`, iconName: 'wallet', tooltip: 'Argent réellement disponible sur les comptes à la fin de la période. Différent du bénéfice et du budget.' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Chiffre d’affaires net', value: formatMoney(kpis.revenue), hint: kpis.salesCount > 0 ? `${kpis.salesCount} vente(s)` : 'Aucune vente', iconName: 'receipt', tooltip: 'Ventes validées, nettes des remises et retours de la période.' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Marge brute', value: formatMoney(kpis.grossMargin), hint: 'Après coût des ventes', tone: kpis.grossMargin >= 0 ? 'positive' : 'negative', iconName: 'chart', tooltip: 'Chiffre d’affaires net − coût moyen pondéré des produits vendus (figé à la vente).' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Résultat estimé', value: formatMoney(kpis.estimatedResult), hint: 'Charges déduites', tone: kpis.estimatedResult >= 0 ? 'positive' : 'negative', iconName: 'banknote', tooltip: 'Marge brute − dépenses d’exploitation. Hors investissements, approvisionnements déjà dans le coût et retraits personnels.' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Trésorerie', value: formatMoney(kpis.treasury), hint: 'Comptes actifs', iconName: 'wallet', tooltip: 'Argent réellement disponible sur les comptes à la fin de la période. Différent du bénéfice et du budget.' }).outerHTML)}
       </div>
     `),
   );

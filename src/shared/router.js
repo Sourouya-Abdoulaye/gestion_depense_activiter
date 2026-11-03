@@ -99,7 +99,7 @@ export async function render({ onRouteChange = null } = {}) {
     const node = await module.default.render(context);
     if (token !== renderToken) return;
     view.replaceChildren(node);
-    if (typeof view.scrollIntoView === 'function') view.scrollIntoView({ block: 'start' });
+    if (typeof window.scrollTo === 'function') window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     if (onRouteChange) onRouteChange(target, module.default.meta || {});
     if (module.default.meta && module.default.meta.title) {
       document.title = `${module.default.meta.title} — Mon Commerce`;

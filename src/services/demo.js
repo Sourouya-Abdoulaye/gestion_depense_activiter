@@ -35,6 +35,13 @@ function daysAgo(days) {
   return toISODate(date);
 }
 
+/** Date récente du mois en cours (pour que la démo reste lisible en début de mois). */
+function thisMonth(daysBack = 0) {
+  const now = new Date();
+  const day = Math.max(1, now.getDate() - daysBack);
+  return toISODate(new Date(now.getFullYear(), now.getMonth(), day));
+}
+
 /** Jeu de données fictif, volontairement petit mais cohérent. */
 export function buildDemoState() {
   const state = emptyState();
@@ -171,7 +178,7 @@ export function buildDemoState() {
     {
       activityId: activity.id,
       supplierId: supplier.id,
-      date: daysAgo(20),
+      date: thisMonth(4),
       lines: [{ productId: chemise.id, quantity: 10, unitPrice: 6000 }],
       status: 'received',
     },
@@ -179,7 +186,7 @@ export function buildDemoState() {
   );
   state.purchases.push(purchase);
   state.stockMovements.push(...purchaseMovements);
-  const [purchasePayment] = buildPurchasePayments(purchase, [{ amount: 40000, accountId: account.id, method: 'Espèces', date: daysAgo(20) }], {
+  const [purchasePayment] = buildPurchasePayments(purchase, [{ amount: 40000, accountId: account.id, method: 'Espèces', date: thisMonth(4) }], {
     maxAmount: purchaseTotal(purchase),
   });
   state.payments.push(purchasePayment);
@@ -188,14 +195,14 @@ export function buildDemoState() {
   const { sale: firstSale, stockMovements: firstMovements } = buildSale(
     {
       activityId: activity.id,
-      date: daysAgo(15),
+      date: thisMonth(3),
       items: [{ productId: chemise.id, quantity: 4, unitPrice: 9000 }],
     },
     { products: state.products, stockState: computeStockState(state.stockMovements, state.products) },
   );
   state.sales.push(firstSale);
   state.stockMovements.push(...firstMovements);
-  const [firstPayment] = buildSalePayments(firstSale, [{ amount: saleTotal(firstSale), accountId: account.id, method: 'Espèces', date: daysAgo(15) }], {
+  const [firstPayment] = buildSalePayments(firstSale, [{ amount: saleTotal(firstSale), accountId: account.id, method: 'Espèces', date: thisMonth(3) }], {
     maxAmount: saleTotal(firstSale),
   });
   state.payments.push(firstPayment);
@@ -205,7 +212,7 @@ export function buildDemoState() {
     {
       activityId: activity.id,
       customerId: customer.id,
-      date: daysAgo(7),
+      date: thisMonth(2),
       items: [{ productId: sac.id, quantity: 2, unitPrice: 15000 }],
       dueDate: daysAgo(-7),
     },
@@ -213,7 +220,7 @@ export function buildDemoState() {
   );
   state.sales.push(secondSale);
   state.stockMovements.push(...secondMovements);
-  const [secondPayment] = buildSalePayments(secondSale, [{ amount: 10000, accountId: account.id, method: 'TMoney', date: daysAgo(7) }], {
+  const [secondPayment] = buildSalePayments(secondSale, [{ amount: 10000, accountId: account.id, method: 'TMoney', date: thisMonth(2) }], {
     maxAmount: saleTotal(secondSale),
   });
   state.payments.push(secondPayment);
@@ -221,7 +228,7 @@ export function buildDemoState() {
 
   const { expense, cashMovements: expenseMovements } = buildExpense({
     activityId: activity.id,
-    date: daysAgo(10),
+    date: thisMonth(1),
     category: 'Loyer',
     nature: 'operating',
     amount: 25000,

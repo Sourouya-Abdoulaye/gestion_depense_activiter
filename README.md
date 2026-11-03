@@ -124,7 +124,7 @@ Points à respecter :
 | **Rapports** | Synthèses datées, comparaison avec la période précédente, diagnostic de coût de revient, exports CSV (dont journal comptable simplifié), impressions et PDF. |
 | **Assistant de rentabilité** | Seuil de rentabilité, marges par produit, simulation de prix. |
 | **Paramètres & sauvegardes** | Identité du commerce, modèles de reçus, préférences, catégories, moyens de paiement, rappels de sauvegarde, verrouillage PIN, instantanés, journal des opérations, archivage par exercice, stockage local et réinitialisation. |
-| **Guide & aide** | Explication complète : écrans, formules des indicateurs (chiffre d'affaires, marge, résultat, trésorerie, budget), vocabulaire, questions fréquentes, exemple chiffré, visite guidée, mode démonstration et vos chiffres réels. |
+| **Assistant & aide** | Assistant local : réponses courtes sur les écrans, les formules et les indicateurs, avec vos chiffres réels de la période. Règles de calcul repliées, visite guidée et mode démonstration. Aucune donnée n'est envoyée sur Internet. |
 
 En dehors du **mode démonstration** (base séparée et bandeau permanent), aucune
 donnée fictive n'est présentée comme réelle : tant qu'aucune opération n'a été

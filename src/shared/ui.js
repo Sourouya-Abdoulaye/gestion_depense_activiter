@@ -311,13 +311,13 @@ export function inputDialog({ title, label, type = 'text', value = '', placehold
 /* ------------------------------- structures ----------------------------- */
 
 /** En-tête de page cohérent. */
-export function pageHeader({ title, subtitle = '', actions = [], breadcrumb = '' }) {
+export function pageHeader({ title, subtitle = '', actions = [], breadcrumb = '', compact = false }) {
   const node = element(html`
     <div class="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
       <div class="min-w-0">
         ${breadcrumb ? html`<p class="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">${breadcrumb}</p>` : ''}
-        <h1 class="truncate text-xl font-bold text-brand-dark sm:text-2xl">${title}</h1>
-        ${subtitle ? html`<p class="mt-1 text-sm text-muted">${subtitle}</p>` : ''}
+        <h1 class="${compact ? 'text-base sm:text-lg' : 'text-xl sm:text-2xl'} truncate ${compact ? 'font-semibold' : 'font-bold'} text-brand-dark">${title}</h1>
+        ${subtitle ? html`<p class="${compact ? 'mt-1 hidden text-[11px] sm:block sm:text-xs' : 'mt-1 text-sm'} text-muted">${subtitle}</p>` : ''}
       </div>
       ${actions.length > 0 ? html`<div class="page-actions no-print flex flex-wrap items-center gap-2"></div>` : ''}
     </div>
@@ -354,21 +354,29 @@ export function sectionCard({ title = '', description = '', actions = [], conten
   return node;
 }
 
-export function kpiCard({ label, value, hint = '', tone = 'neutral', iconName = '', hintTone = '', tooltip = '' }) {
+export function kpiCard({ label, value, hint = '', tone = 'neutral', iconName = '', hintTone = '', tooltip = '', compact = false, accent = false }) {
   const tones = {
     neutral: 'text-ink',
     positive: 'text-brand',
     negative: 'text-danger',
     warning: 'text-warning',
   };
+  const hintClass = hintTone === 'danger' ? 'text-danger' : hintTone === 'warning' ? 'text-warning' : 'text-muted';
   return element(html`
-    <div class="card card-pad">
+    <div class="card ${accent ? 'kpi-card-accent' : ''} ${compact ? 'px-3.5 py-3' : 'p-4'} transition-colors hover:border-brand/30">
       <div class="flex items-start justify-between gap-2">
-        <p class="kpi-label flex items-center gap-1">${label}${tooltip ? raw(helpTip(tooltip)) : ''}</p>
-        ${iconName ? html`<span class="text-brand-dark/70">${raw(icon(iconName, { size: 18 }))}</span>` : ''}
+        <p class="kpi-label flex min-w-0 items-center gap-1">
+          <span class="truncate">${label}</span>
+          ${tooltip ? helpTip(tooltip) : ''}
+        </p>
+        ${iconName
+          ? html`<span class="grid shrink-0 place-items-center rounded-lg ${accent ? 'bg-white/75 text-brand' : 'bg-brand-light/60 text-brand-dark/70'} ${compact ? 'h-7 w-7' : 'h-8 w-8'}">
+              ${raw(icon(iconName, { size: compact ? 15 : 17 }))}
+            </span>`
+          : ''}
       </div>
-      <p class="kpi-value ${tones[tone] || tones.neutral}">${value}</p>
-      ${hint ? html`<p class="mt-1 text-xs ${hintTone === 'danger' ? 'text-danger' : hintTone === 'warning' ? 'text-warning' : 'text-muted'}">${hint}</p>` : ''}
+      <p class="${compact ? 'mt-1.5 text-[1.35rem] font-semibold leading-none' : 'kpi-value'} tabular-nums ${tones[tone] || tones.neutral}">${value}</p>
+      ${hint ? html`<p class="mt-1.5 truncate text-[0.68rem] leading-snug ${hintClass}" title="${hint}">${hint}</p>` : ''}
     </div>
   `);
 }

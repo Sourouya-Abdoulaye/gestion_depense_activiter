@@ -188,9 +188,9 @@ function paint() {
     element(html`
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         ${raw(kpiCard({ label: 'Employés', value: String(employees.length), hint: `${active.length} actif(s)`, iconName: 'users' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Masse salariale de référence', value: formatMoney(payroll), hint: 'Somme des salaires mensuels des fiches actives', iconName: 'wallet', tooltip: 'Indicatif : seuls les salaires réellement versés deviennent des dépenses.' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Masse salariale de référence', value: formatMoney(payroll), hint: 'Salaires mensuels', iconName: 'wallet', tooltip: 'Indicatif : seuls les salaires réellement versés deviennent des dépenses.' }).outerHTML)}
         ${raw(kpiCard({ label: 'Salaires versés ce mois', value: formatMoney(paid), hint: monthLabel(), tone: paid > 0 ? 'positive' : 'neutral', iconName: 'banknote' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Fiches inactives', value: String(employees.length - active.length), hint: 'Historique conservé, sans nouvelle paie', iconName: 'info' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Fiches inactives', value: String(employees.length - active.length), hint: 'Sans nouvelle paie', iconName: 'info' }).outerHTML)}
       </div>
     `),
   );

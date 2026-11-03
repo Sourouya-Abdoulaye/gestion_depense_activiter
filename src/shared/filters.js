@@ -13,20 +13,22 @@ import { icon } from './icons.js';
  * Barre de filtres : sélection d'activité, période prédéfinie ou personnalisée.
  * @param {{activities: Array, showActivity?: boolean, onActivityLocked?: boolean, extra?: Node}} options
  */
-export function filterBar({ activities = [], showActivity = true, lockedActivityId = '' } = {}) {
+export function filterBar({ activities = [], showActivity = true, lockedActivityId = '', compact = false } = {}) {
   const view = getViewState();
   const period = getPeriod();
   const activeActivities = activities.filter((activity) => activity.status === ACTIVITY_STATUS.ACTIVE);
   const archivedActivities = activities.filter((activity) => activity.status === ACTIVITY_STATUS.ARCHIVED);
+  const controlClass = compact ? 'input h-8 max-w-[190px] py-1 text-xs' : 'input';
+  const labelClass = compact ? 'sr-only' : 'label';
 
   const node = element(html`
-    <div class="card card-pad no-print filter-bar mb-4">
-      <div class="flex flex-wrap items-end gap-3">
+    <div class="${compact ? 'no-print filter-bar mb-3 flex flex-wrap items-center gap-2' : 'card card-pad no-print filter-bar mb-4'}">
+      <div class="${compact ? 'contents' : 'flex flex-wrap items-end gap-3'}">
         ${showActivity
           ? html`
-              <div class="min-w-[200px] flex-1">
-                <label class="label" for="filter-activity">Activité</label>
-                <select id="filter-activity" class="input" ${lockedActivityId ? 'disabled' : ''}>
+              <div class="${compact ? 'min-w-0' : 'min-w-[200px] flex-1'}">
+                <label class="${labelClass}" for="filter-activity">Activité</label>
+                <select id="filter-activity" class="${controlClass}" ${lockedActivityId ? 'disabled' : ''}>
                   <option value="">Toutes les activités</option>
                   ${activeActivities.length > 0 ? html`<optgroup label="Actives">${activeActivities.map((activity) => html`<option value="${activity.id}" ${view.activityId === activity.id ? 'selected' : ''}>${activity.name}</option>`)}</optgroup>` : ''}
                   ${archivedActivities.length > 0 ? html`<optgroup label="Archivées">${archivedActivities.map((activity) => html`<option value="${activity.id}" ${view.activityId === activity.id ? 'selected' : ''}>${activity.name}</option>`)}</optgroup>` : ''}
@@ -35,27 +37,27 @@ export function filterBar({ activities = [], showActivity = true, lockedActivity
             `
           : html`<input type="hidden" id="filter-activity" value="${view.activityId}" />`}
 
-        <div class="min-w-[170px]">
-          <label class="label" for="filter-period">Période</label>
-          <select id="filter-period" class="input">
+        <div class="${compact ? 'min-w-0' : 'min-w-[170px]'}">
+          <label class="${labelClass}" for="filter-period">Période</label>
+          <select id="filter-period" class="${controlClass}">
             ${PERIOD_PRESETS.map(
               (preset) => html`<option value="${preset.value}" ${view.periodPreset === preset.value ? 'selected' : ''}>${preset.label}</option>`,
             )}
           </select>
         </div>
 
-        <div class="flex flex-1 flex-wrap items-end gap-3 ${view.periodPreset === 'custom' ? '' : 'hidden'}" data-custom-range>
+        <div class="${compact ? 'flex flex-wrap items-center gap-2' : 'flex flex-1 flex-wrap items-end gap-3'} ${view.periodPreset === 'custom' ? '' : 'hidden'}" data-custom-range>
           <div>
-            <label class="label" for="filter-from">Du</label>
-            <input id="filter-from" type="date" class="input" value="${view.customFrom || period.from}" />
+            <label class="${labelClass}" for="filter-from">Du</label>
+            <input id="filter-from" type="date" class="${controlClass}" value="${view.customFrom || period.from}" />
           </div>
           <div>
-            <label class="label" for="filter-to">Au</label>
-            <input id="filter-to" type="date" class="input" value="${view.customTo || period.to}" />
+            <label class="${labelClass}" for="filter-to">Au</label>
+            <input id="filter-to" type="date" class="${controlClass}" value="${view.customTo || period.to}" />
           </div>
         </div>
 
-        <div class="ml-auto flex items-center gap-2 text-xs text-muted">
+        <div class="${compact ? 'hidden' : 'ml-auto flex items-center gap-2 text-xs text-muted'}">
           <span class="hidden items-center gap-1 sm:flex">${raw(icon('clock', { size: 14 }))} <span data-period-label></span></span>
           <button type="button" class="btn-ghost btn-sm" data-reset-filters>Tout l’historique</button>
         </div>
@@ -72,7 +74,6 @@ export function filterBar({ activities = [], showActivity = true, lockedActivity
 
   function refreshLabel() {
     const current = getPeriod();
-    const preset = PERIOD_PRESETS.find((entry) => entry.value === view.periodPreset);
     if (view.periodPreset === 'all') label.textContent = 'Tout l’historique';
     else label.textContent = `du ${formatDate(current.from)} au ${formatDate(current.to)}`;
   }

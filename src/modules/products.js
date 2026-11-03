@@ -187,10 +187,10 @@ function paint(ctx) {
   wrapper.append(
     element(html`
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        ${raw(kpiCard({ label: 'Produits actifs', value: String(activeProducts.length), hint: `${products.length} au total (archivés compris)`, iconName: 'box' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Valeur du stock', value: formatMoney(stockValue(stockState)), hint: 'Quantités disponibles × coût moyen pondéré', iconName: 'layers' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Alertes de stock', value: String(alerts.length), hint: alerts.length > 0 ? 'Réapprovisionnement conseillé' : 'Aucune alerte', tone: alerts.length > 0 ? 'warning' : 'neutral', iconName: 'alert' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Quantités en stock', value: formatQuantity(Object.values(stockState).reduce((total, entry) => total + Math.max(entry.quantity, 0), 0)), hint: 'Tous produits confondus', iconName: 'layers' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Produits actifs', value: String(activeProducts.length), hint: `${products.length} au total`, iconName: 'box' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Valeur du stock', value: formatMoney(stockValue(stockState)), hint: 'Quantité × coût moyen', iconName: 'layers' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Alertes de stock', value: String(alerts.length), hint: alerts.length > 0 ? 'À réapprovisionner' : 'Aucune alerte', tone: alerts.length > 0 ? 'warning' : 'neutral', iconName: 'alert' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Quantités en stock', value: formatQuantity(Object.values(stockState).reduce((total, entry) => total + Math.max(entry.quantity, 0), 0)), hint: 'Tous produits', iconName: 'layers' }).outerHTML)}
       </div>
     `),
   );

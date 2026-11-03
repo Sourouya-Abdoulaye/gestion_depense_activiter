@@ -139,7 +139,7 @@ function paint(ctx, api) {
         ${raw(kpiCard({ label: 'Mouvements affichés', value: String(scoped.length), hint: `${state.stockMovements.length} au total`, iconName: 'layers' }).outerHTML)}
         ${raw(kpiCard({ label: 'Quantités entrées', value: formatQuantity(totalIn), tone: 'positive', iconName: 'plus' }).outerHTML)}
         ${raw(kpiCard({ label: 'Quantités sorties', value: formatQuantity(totalOut), tone: 'negative', iconName: 'arrowRight' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Valeur du stock', value: formatMoney(stockValue(stockState)), hint: 'Tous produits confondus', iconName: 'box' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Valeur du stock', value: formatMoney(stockValue(stockState)), hint: 'Tous produits', iconName: 'box' }).outerHTML)}
       </div>
     `),
   );

@@ -13,6 +13,7 @@ import { getPeriod, getViewState } from '../shared/view-state.js';
 import { createPage, needsActivityNotice } from '../shared/screen.js';
 import { button, dataTable, emptyState, kpiCard, noticePanel, pageHeader, sectionCard } from '../shared/ui.js';
 import { chartBox, CHART_COLORS, Chart } from '../shared/charts.js';
+import { icon } from '../shared/icons.js';
 import { currentActivity, getState } from '../services/state.js';
 import { periodLabel } from '../services/reports.js';
 import {
@@ -47,6 +48,129 @@ function buildSeries(state, filters, period) {
     revenue: series.map((entry) => entry.revenue),
     expenses: series.map((entry) => entry.expenses),
   };
+}
+
+/* ------------------------------ sous-vues ------------------------------- */
+
+function sectionHeading(title) {
+  return element(html`
+    <div class="mb-2 flex items-center gap-3">
+      <h2 class="text-sm font-semibold text-brand-dark">${title}</h2>
+      <span class="h-px flex-1 bg-line"></span>
+    </div>
+  `);
+}
+
+function buildHero({ activity, period, actions }) {
+  const initial = String(activity ? activity.name : 'Mon Commerce').trim().charAt(0).toUpperCase();
+  const hero = element(html`
+    <section class="dashboard-hero relative overflow-hidden rounded-card border border-brand/15 px-4 py-4 sm:px-6 sm:py-5">
+      <div class="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div class="flex min-w-0 items-center gap-3">
+          <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand text-lg font-bold text-white shadow-sm">${initial}</span>
+          <div class="min-w-0">
+            <p class="text-[0.62rem] font-bold uppercase tracking-[0.12em] text-brand">Tableau de bord</p>
+            <h1 class="mt-0.5 truncate text-xl font-semibold text-brand-dark sm:text-2xl">${activity ? activity.name : 'Votre activité'}</h1>
+            <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.7rem] text-muted">
+              <span>${periodLabel(period, formatDate)}</span>
+              <span class="h-1 w-1 rounded-full bg-line"></span>
+              <span>Données locales</span>
+            </p>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2" data-hero-actions></div>
+      </div>
+    </section>
+  `);
+  hero.querySelector('[data-hero-actions]').append(...actions);
+  return hero;
+}
+
+function buildBudgetCard(activity, state) {
+  const budget = activityBudget(activity, { cashMovements: state.cashMovements });
+  const ratio = budget.available > 0 ? Math.min(budget.consumed / budget.available, 1) : 0;
+  const percent = Math.round(ratio * 100);
+  const barTone = ratio >= 1 ? 'bg-danger' : ratio >= 0.8 ? 'bg-warning' : 'bg-brand';
+  const targetPercent = budget.target > 0 ? Math.min(budget.targetProgress, 1) : 0;
+  return element(html`
+    <div class="card p-4 sm:p-5">
+      <div class="flex items-start justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span class="grid h-8 w-8 place-items-center rounded-lg bg-brand-light/70 text-brand-dark">${raw(icon('wallet', { size: 16 }))}</span>
+          <div>
+            <h2 class="text-sm font-semibold text-brand-dark">Budget</h2>
+            <p class="text-[0.65rem] text-muted">Cumulé sur l’activité</p>
+          </div>
+        </div>
+        <span class="badge ${budget.remaining >= 0 ? 'badge-brand' : 'badge-danger'}">${formatMoney(budget.remaining)} restant</span>
+      </div>
+
+      <div class="mt-3 grid grid-cols-2 gap-3">
+        <div><p class="text-[0.65rem] text-muted">Capital</p><p class="mt-0.5 text-sm font-semibold tabular-nums">${formatMoney(budget.initialCapital)}</p></div>
+        <div><p class="text-[0.65rem] text-muted">Apports</p><p class="mt-0.5 text-sm font-semibold tabular-nums">${formatMoney(budget.contributions)}</p></div>
+        <div><p class="text-[0.65rem] text-muted">Consommé</p><p class="mt-0.5 text-sm font-semibold tabular-nums text-warning">${formatMoney(budget.consumed)}</p></div>
+        <div><p class="text-[0.65rem] text-muted">Disponible</p><p class="mt-0.5 text-sm font-semibold tabular-nums">${formatMoney(budget.available)}</p></div>
+      </div>
+
+      <div class="mt-3">
+        <div class="flex items-center justify-between text-[0.68rem] text-muted"><span>Budget utilisé</span><span>${percent} %</span></div>
+        <div class="mt-1 h-2 overflow-hidden rounded-full bg-canvas"><div class="h-full rounded-full ${barTone}" style="width:${percent}%"></div></div>
+      </div>
+      ${budget.target > 0
+        ? html`<div class="mt-2">
+            <div class="flex items-center justify-between text-[0.65rem] text-muted"><span>Objectif de dépenses</span><span>${Math.round(targetPercent * 100)} %</span></div>
+            <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-canvas"><div class="h-full rounded-full ${targetPercent >= 1 ? 'bg-danger' : 'bg-brand'}" style="width:${Math.round(targetPercent * 100)}%"></div></div>
+          </div>`
+        : ''}
+    </div>
+  `);
+}
+
+function buildInsightCard({ ctx, kpis, alerts, overdueReceivables, overduePayables }) {
+  let iconName = 'chart';
+  let title = 'Votre marge en un mot';
+  let text = `Votre marge brute représente ${formatPercent(kpis.grossMargin / kpis.revenue)} du chiffre d’affaires.`;
+  let actionLabel = 'Voir les rapports';
+  let path = 'rapports';
+
+  if (overdueReceivables.length > 0) {
+    iconName = 'users';
+    title = 'Une relance à prévoir';
+    text = `${overdueReceivables.length} créance(s) client sont en retard de paiement.`;
+    actionLabel = 'Voir les créances';
+    path = 'clients';
+  } else if (alerts.length > 0) {
+    iconName = 'box';
+    title = 'Stock à surveiller';
+    text = `${alerts.length} produit(s) sont sous le seuil d’alerte.`;
+    actionLabel = 'Voir le stock';
+    path = 'produits';
+  } else if (overduePayables.length > 0) {
+    iconName = 'truck';
+    title = 'Échéance fournisseur';
+    text = `${overduePayables.length} dette(s) fournisseur sont échues.`;
+    actionLabel = 'Voir les dettes';
+    path = 'fournisseurs';
+  } else if (kpis.revenue <= 0) {
+    iconName = 'receipt';
+    title = 'Donnez vie à votre tableau de bord';
+    text = 'Enregistrez une première vente pour suivre votre activité en temps réel.';
+    actionLabel = 'Vendre maintenant';
+    path = 'ventes';
+  }
+
+  const card = element(html`
+    <section class="insight-card relative overflow-hidden rounded-card px-4 py-4 text-white sm:px-5">
+      <span class="grid h-8 w-8 place-items-center rounded-lg bg-white/15">${raw(icon(iconName, { size: 16 }))}</span>
+      <h2 class="mt-3 text-sm font-semibold text-white">${title}</h2>
+      <p class="mt-1 text-[0.72rem] leading-relaxed text-white/80">${text}</p>
+      <button type="button" class="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-white hover:text-brand-light" data-insight-action>
+        ${actionLabel} ${raw(icon('arrowRight', { size: 12 }))}
+      </button>
+    </section>
+  `);
+  card.querySelector('[data-insight-action]').addEventListener('click', () => ctx.navigate(path));
+  return card;
 }
 
 /* --------------------------------- rendu -------------------------------- */
@@ -85,9 +209,9 @@ function paint(ctx, api) {
   }).filter((entry) => entry.overdueDays > 0);
 
   wrapper.append(
-    pageHeader({
-      title: activity ? activity.name : 'Tableau de bord',
-      subtitle: `Période analysée : ${periodLabel(period, (value) => formatDate(value))}.`,
+    buildHero({
+      activity,
+      period,
       actions: [
         button({ label: 'Ventes & caisse', iconName: 'plus', variant: 'primary', onClick: () => ctx.navigate('ventes') }),
         button({ label: 'Voir les rapports', iconName: 'chart', onClick: () => ctx.navigate('rapports') }),
@@ -95,59 +219,26 @@ function paint(ctx, api) {
     }),
   );
 
-  if (activity) {
-    const budget = activityBudget(activity, { cashMovements: state.cashMovements });
-    const progress = budget.target > 0 ? Math.min(budget.targetProgress, 1) : 0;
-    wrapper.append(
-      element(html`
-        <div class="card card-pad">
-          <div class="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <h2 class="text-base font-semibold text-brand-dark">Budget de l’activité</h2>
-              <p class="text-xs text-muted">
-                Les indicateurs de résultat portent sur la période sélectionnée ; le budget cumule toute l’activité.
-              </p>
-            </div>
-            <span class="badge ${budget.remaining >= 0 ? 'badge-brand' : 'badge-danger'}">${formatMoney(budget.remaining)} restant</span>
-          </div>
-          <div class="mt-3 grid gap-3 sm:grid-cols-4">
-            <div><p class="text-xs text-muted">Capital de départ</p><p class="font-semibold tabular-nums">${formatMoney(budget.initialCapital)}</p></div>
-            <div><p class="text-xs text-muted">Apports cumulés</p><p class="font-semibold tabular-nums">${formatMoney(budget.contributions)}</p></div>
-            <div><p class="text-xs text-muted">Budget consommé</p><p class="font-semibold tabular-nums text-warning">${formatMoney(budget.consumed)}</p></div>
-            <div><p class="text-xs text-muted">Budget disponible</p><p class="font-semibold tabular-nums">${formatMoney(budget.available)}</p></div>
-          </div>
-          ${budget.target > 0
-            ? html`
-                <div class="mt-3">
-                  <div class="flex items-center justify-between text-xs text-muted">
-                    <span>Budget cible : ${formatMoney(budget.target)}</span>
-                    <span>${Math.round(progress * 100)} % consommé</span>
-                  </div>
-                  <div class="mt-1 h-2 w-full overflow-hidden rounded-full bg-canvas">
-                    <div class="h-full rounded-full ${progress >= 1 ? 'bg-danger' : 'bg-brand'}" style="width:${Math.round(progress * 100)}%"></div>
-                  </div>
-                </div>
-              `
-            : ''}
-        </div>
-      `),
-    );
-  }
+  const performanceCards = [
+    kpiCard({ label: 'Chiffre d’affaires net', value: formatMoney(kpis.revenue), hint: kpis.salesCount > 0 ? `${kpis.salesCount} vente(s)` : 'Aucune vente', iconName: 'receipt', accent: true, tooltip: 'Ventes validées de la période, moins les remises et les retours. Ce n’est pas l’argent déjà encaissé.' }),
+    kpiCard({ label: 'Marge brute', value: formatMoney(kpis.grossMargin), hint: kpis.revenue > 0 ? `Taux ${formatPercent(kpis.grossMargin / kpis.revenue)}` : 'Aucune vente', tone: kpis.grossMargin >= 0 ? 'positive' : 'negative', iconName: 'chart', tooltip: 'Chiffre d’affaires net moins le coût moyen pondéré des produits vendus. Le coût est figé au moment de chaque vente.' }),
+    kpiCard({ label: 'Résultat estimé', value: formatMoney(kpis.estimatedResult), hint: 'Charges déduites', tone: kpis.estimatedResult >= 0 ? 'positive' : 'negative', iconName: 'banknote', tooltip: 'Marge brute moins les dépenses d’exploitation de la période. Les achats de stock, investissements et retraits personnels ne sont pas déduits ici.' }),
+    kpiCard({ label: 'Trésorerie', value: formatMoney(kpis.treasury), hint: 'Comptes actifs', iconName: 'wallet', tooltip: 'Solde initial des comptes + argent réellement entré − argent réellement sorti. Les créances et dettes non réglées sont exclues.' }),
+  ];
+  const flowCards = [
+    kpiCard({ label: 'Encaissements', value: formatMoney(kpis.cashIn), hint: 'Reçus sur la période', iconName: 'download', tooltip: 'Paiements effectivement reçus sur la période (ventes, règlements clients, apports). Les ventes à crédit non payées n’y figurent pas.' }),
+    kpiCard({ label: 'Créances clients', value: formatMoney(kpis.receivables), hint: 'À recevoir', tone: kpis.receivables > 0 ? 'warning' : 'neutral', iconName: 'users', tooltip: 'Reste à recevoir sur les ventes à crédit : montant des ventes − paiements reçus − avoirs. Ce n’est pas encore de la trésorerie.' }),
+    kpiCard({ label: 'Dettes fournisseurs', value: formatMoney(kpis.payables), hint: 'À payer', tone: kpis.payables > 0 ? 'warning' : 'neutral', iconName: 'truck', tooltip: 'Reste à payer sur les achats : montant des achats − paiements − retours. Une dette n’a pas encore impacté la trésorerie.' }),
+    kpiCard({ label: 'Valeur du stock', value: formatMoney(kpis.stockValue), hint: 'Coût moyen', iconName: 'box', tooltip: 'Quantité disponible × coût moyen pondéré, calculé à partir de tous les mouvements de stock. Une perte ou une casse réduit cette valeur.' }),
+  ];
 
-  wrapper.append(
-    element(html`
-      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        ${raw(kpiCard({ label: 'Chiffre d’affaires net', value: formatMoney(kpis.revenue), hint: `Net de ${formatMoney(kpis.returnsValue)} de retours`, iconName: 'receipt', tooltip: 'Ventes validées de la période, moins les remises et les retours. Ce n’est pas l’argent déjà encaissé.' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Marge brute', value: formatMoney(kpis.grossMargin), hint: kpis.revenue > 0 ? `Taux de marge : ${formatPercent(kpis.grossMargin / kpis.revenue)}` : 'Aucune vente sur la période', tone: kpis.grossMargin >= 0 ? 'positive' : 'negative', iconName: 'chart', tooltip: 'Chiffre d’affaires net moins le coût moyen pondéré des produits vendus. Le coût est figé au moment de chaque vente.' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Résultat estimé', value: formatMoney(kpis.estimatedResult), hint: `Après ${formatMoney(kpis.operatingExpenses)} de charges d’exploitation`, tone: kpis.estimatedResult >= 0 ? 'positive' : 'negative', iconName: 'banknote', tooltip: 'Marge brute moins les dépenses d’exploitation de la période. Les achats de stock, investissements et retraits personnels ne sont pas déduits ici.' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Trésorerie', value: formatMoney(kpis.treasury), hint: 'Soldes des comptes actifs', iconName: 'wallet', tooltip: 'Solde initial des comptes + argent réellement entré − argent réellement sorti. Les créances et dettes non réglées sont exclues.' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Encaissements', value: formatMoney(kpis.cashIn), hint: 'Argent réellement reçu sur la période', iconName: 'download', tooltip: 'Paiements effectivement reçus sur la période (ventes, règlements clients, apports). Les ventes à crédit non payées n’y figurent pas.' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Créances clients', value: formatMoney(kpis.receivables), hint: 'Montants restant à recevoir', tone: kpis.receivables > 0 ? 'warning' : 'neutral', iconName: 'users', tooltip: 'Reste à recevoir sur les ventes à crédit : montant des ventes − paiements reçus − avoirs. Ce n’est pas encore de la trésorerie.' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Dettes fournisseurs', value: formatMoney(kpis.payables), hint: 'Montants restant à payer', tone: kpis.payables > 0 ? 'warning' : 'neutral', iconName: 'truck', tooltip: 'Reste à payer sur les achats : montant des achats − paiements − retours. Une dette n’a pas encore impacté la trésorerie.' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Valeur du stock', value: formatMoney(kpis.stockValue), hint: 'Au coût moyen pondéré', iconName: 'box', tooltip: 'Quantité disponible × coût moyen pondéré, calculé à partir de tous les mouvements de stock. Une perte ou une casse réduit cette valeur.' }).outerHTML)}
-      </div>
-    `),
-  );
+  const kpiSection = element('<section class="space-y-3"></section>');
+  const performanceGrid = element('<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"></div>');
+  performanceGrid.append(...performanceCards);
+  const flowGrid = element('<div class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"></div>');
+  flowGrid.append(...flowCards);
+  kpiSection.append(sectionHeading('Performance'), performanceGrid, flowGrid);
+  wrapper.append(kpiSection);
 
   const alertItems = [];
   if (alerts.length > 0) {

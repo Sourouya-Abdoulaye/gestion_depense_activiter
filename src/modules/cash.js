@@ -367,10 +367,10 @@ function paint(ctx, api) {
   wrapper.append(
     element(html`
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        ${raw(kpiCard({ label: 'Trésorerie totale', value: formatMoney(treasury), hint: 'Tous comptes actifs', iconName: 'banknote' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Entrées de la période', value: formatMoney(cashIn), hint: 'Hors apports et transferts', tone: 'positive', iconName: 'arrowRight' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Sorties de la période', value: formatMoney(cashOut), hint: 'Hors transferts internes', tone: 'negative', iconName: 'arrowLeft' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Apports / retraits', value: `${formatMoney(contributions)} / ${formatMoney(withdrawals)}`, hint: 'Indicateurs distincts du résultat', iconName: 'wallet' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Trésorerie totale', value: formatMoney(treasury), hint: 'Comptes actifs', iconName: 'banknote' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Entrées de la période', value: formatMoney(cashIn), hint: 'Hors apports', tone: 'positive', iconName: 'arrowRight' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Sorties de la période', value: formatMoney(cashOut), hint: 'Hors transferts', tone: 'negative', iconName: 'arrowLeft' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Apports / retraits', value: `${formatMoney(contributions)} / ${formatMoney(withdrawals)}`, hint: 'Hors résultat', iconName: 'wallet' }).outerHTML)}
       </div>
     `),
   );

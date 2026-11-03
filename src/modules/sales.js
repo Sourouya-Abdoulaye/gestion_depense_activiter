@@ -611,10 +611,10 @@ function paint(ctx, api) {
   wrapper.append(
     element(html`
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        ${raw(kpiCard({ label: 'Chiffre d’affaires', value: formatMoney(revenue), hint: `${validated.length} vente(s) validée(s)`, iconName: 'receipt' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Encaissements', value: formatMoney(collected), hint: 'Paiements réellement reçus sur la période', tone: 'positive', iconName: 'wallet' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Créances clients', value: formatMoney(receivables), hint: 'Montants restant à recevoir', tone: receivables > 0 ? 'warning' : 'neutral', iconName: 'users' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Panier moyen', value: formatMoney(averageBasket), hint: 'Chiffre d’affaires ÷ nombre de ventes', iconName: 'chart' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Chiffre d’affaires', value: formatMoney(revenue), hint: `${validated.length} vente(s)`, iconName: 'receipt' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Encaissements', value: formatMoney(collected), hint: 'Reçus réels', tone: 'positive', iconName: 'wallet' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Créances clients', value: formatMoney(receivables), hint: 'À recevoir', tone: receivables > 0 ? 'warning' : 'neutral', iconName: 'users' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Panier moyen', value: formatMoney(averageBasket), hint: 'CA ÷ ventes', iconName: 'chart' }).outerHTML)}
       </div>
     `),
   );

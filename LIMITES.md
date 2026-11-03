@@ -213,7 +213,7 @@
 - **Constat** : quatre indicateurs différents qui ne coïncident pas.
 - **Impact** : incompréhension fréquente (« pourquoi ce n'est pas le même chiffre ? »).
 - **Solutions proposées** :
-  1. (Doc) Déjà expliqué dans le Guide & aide ; renforcer avec des infobulles contextuelles.
+  1. (Doc) Déjà expliqué dans l’Assistant & aide ; renforcer avec des infobulles contextuelles.
   2. (Produit) Un écran « D'où viennent mes chiffres » avec la démonstration pas-à-pas d'un cas réel.
   3. (Produit) Info-bulles « ? » à côté de chaque indicateur.
 - **Type** : Doc/Produit · **Effort** : Faible · **Priorité** : P3
@@ -271,7 +271,7 @@
 - **Type** : Produit/Infra · **Effort** : Élevé · **Priorité** : P3
 
 ### L23 — Formation et accompagnement absents
-- **Constat** : le Guide & aide explique l'application, mais pas le vocabulaire métier en détail ni la compta.
+- **Constat** : l’Assistant & aide explique l'application, mais pas le vocabulaire métier en détail ni la compta.
 - **Impact** : erreurs de saisie par méconnaissance de gestion.
 - **Solutions proposées** :
   1. (Doc) Ajouter des fiches « premiers pas » et une courte FAQ métier.

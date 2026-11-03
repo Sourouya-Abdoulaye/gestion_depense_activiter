@@ -190,10 +190,10 @@ function paint(ctx, api) {
   wrapper.append(
     element(html`
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        ${raw(kpiCard({ label: 'Dépenses d’exploitation', value: formatMoney(operating), hint: 'Déduites du résultat de la période', tone: 'negative', iconName: 'wallet' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Total des dépenses', value: formatMoney(topical), hint: 'Toutes natures confondues', iconName: 'chart' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Dépenses d’exploitation', value: formatMoney(operating), hint: 'Déduites du résultat', tone: 'negative', iconName: 'wallet' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Total des dépenses', value: formatMoney(topical), hint: 'Toutes natures', iconName: 'chart' }).outerHTML)}
         ${raw(kpiCard({ label: 'Dépenses affichées', value: String(expenses.length), hint: `${state.expenses.length} au total`, iconName: 'clock' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Approvisionnement', value: formatMoney(byNature.supply || 0), hint: 'Déjà compris dans le coût des produits vendus', iconName: 'cart' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Approvisionnement', value: formatMoney(byNature.supply || 0), hint: 'Déjà dans le coût', iconName: 'cart' }).outerHTML)}
       </div>
     `),
   );

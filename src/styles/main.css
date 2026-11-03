@@ -19,7 +19,8 @@
   --color-line: #e5e7eb;
 
   --font-sans:
-    'Inter', 'Segoe UI', 'Helvetica Neue', Arial, system-ui, sans-serif;
+    Roboto, 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial,
+    'Noto Sans', sans-serif;
 
   --radius-card: 0.875rem;
 
@@ -41,6 +42,7 @@
     @apply bg-canvas text-ink font-sans antialiased;
     margin: 0;
     min-height: 100vh;
+    letter-spacing: -0.01em;
   }
 
   h1,
@@ -192,11 +194,11 @@
   }
 
   .kpi-value {
-    @apply mt-1 text-xl font-bold text-ink tabular-nums sm:text-2xl;
+    @apply mt-1.5 text-[1.35rem] font-semibold leading-none text-ink tabular-nums sm:text-[1.5rem];
   }
 
   .kpi-label {
-    @apply text-xs font-semibold uppercase tracking-wide text-muted;
+    @apply text-[0.65rem] font-semibold uppercase tracking-[0.07em] text-muted;
   }
 
   .nav-link {
@@ -205,11 +207,29 @@
   }
 
   .nav-link-active {
-    @apply bg-brand-dark text-white hover:bg-brand-dark hover:text-white;
+    @apply bg-brand-light font-semibold text-brand-dark hover:bg-brand-light hover:text-brand-dark;
+    box-shadow: inset 3px 0 0 var(--color-brand);
   }
 
   .section-title {
     @apply text-lg font-semibold text-brand-dark;
+  }
+
+  .dashboard-hero {
+    background:
+      radial-gradient(circle at 90% 8%, rgb(21 128 61 / 0.1), transparent 34%),
+      linear-gradient(135deg, #f0fdf4 0%, #ffffff 62%);
+  }
+
+  .kpi-card-accent {
+    background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 64%);
+    border-color: rgb(21 128 61 / 0.28);
+  }
+
+  .insight-card {
+    background:
+      radial-gradient(circle at 92% 8%, rgb(255 255 255 / 0.12), transparent 32%),
+      linear-gradient(135deg, #14532d 0%, #15803d 100%);
   }
 }
 
@@ -230,6 +250,15 @@
   .scroll-thin::-webkit-scrollbar-thumb {
     background: #d1d5db;
     border-radius: 9999px;
+  }
+
+  /* Les suggestions de l'assistant défilent sans barre visible sur mobile. */
+  .chat-chips {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .chat-chips::-webkit-scrollbar {
+    display: none;
   }
 }
 

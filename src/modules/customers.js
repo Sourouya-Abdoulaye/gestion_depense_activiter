@@ -172,10 +172,10 @@ function paint(ctx) {
   wrapper.append(
     element(html`
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        ${raw(kpiCard({ label: 'Clients', value: String(state.customers.length), hint: 'Fiches enregistrées', iconName: 'users' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Créances totales', value: formatMoney(totalDue), hint: 'Toutes ventes à crédit confondues', tone: totalDue > 0 ? 'warning' : 'neutral', iconName: 'wallet' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Clients débiteurs', value: String(indebtedCustomers), hint: 'Avec au moins une créance ouverte', iconName: 'chart' }).outerHTML)}
-        ${raw(kpiCard({ label: 'Ventes à crédit', value: String(receivables.length), hint: 'Documents encore non soldés', iconName: 'receipt' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Clients', value: String(state.customers.length), hint: 'Fiches', iconName: 'users' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Créances totales', value: formatMoney(totalDue), hint: 'À recevoir', tone: totalDue > 0 ? 'warning' : 'neutral', iconName: 'wallet' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Clients débiteurs', value: String(indebtedCustomers), hint: 'Avec créance', iconName: 'chart' }).outerHTML)}
+        ${raw(kpiCard({ label: 'Ventes à crédit', value: String(receivables.length), hint: 'Non soldées', iconName: 'receipt' }).outerHTML)}
       </div>
     `),
   );

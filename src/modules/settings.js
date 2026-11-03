@@ -1095,7 +1095,7 @@ function paint(ctx) {
       <p class="text-xs text-muted" data-env-summary>État du stockage : vérification…</p>
       <div class="flex flex-wrap gap-2">
         <button type="button" class="btn-ghost" data-persist>Demander un stockage persistant</button>
-        <a href="#/aide" class="btn-ghost">Guide &amp; aide</a>
+        <a href="#/aide" class="btn-ghost">Assistant &amp; aide</a>
       </div>
     </div>
   `);

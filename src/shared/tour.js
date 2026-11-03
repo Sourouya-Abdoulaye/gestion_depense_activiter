@@ -1,7 +1,7 @@
 /* ---------------------------------------------------------------------------
  * Mon Commerce — visite guidée (L23)
  *
- * Parcours pas-à-pas au premier lancement, rejouable depuis le Guide & aide.
+ * Parcours pas-à-pas au premier lancement, rejouable depuis l’Assistant & aide.
  * La visite ne modifie aucune donnée métier : elle navigue entre les écrans et
  * affiche une fiche explicative.
  * ------------------------------------------------------------------------- */
@@ -50,7 +50,7 @@ const STEPS = [
   {
     route: 'aide',
     title: 'Besoin d’aide ?',
-    text: 'Le Guide & aide explique chaque écran, les formules et le vocabulaire. Vous pouvez relancer cette visite à tout moment depuis cette page.',
+    text: 'L’assistant répond à vos questions sur les écrans, les formules et vos chiffres. Vous pouvez relancer cette visite à tout moment.',
   },
 ];
 
