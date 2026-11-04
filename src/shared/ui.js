@@ -365,12 +365,12 @@ export function kpiCard({ label, value, hint = '', tone = 'neutral', iconName = 
   return element(html`
     <div class="card ${accent ? 'kpi-card-accent' : ''} ${compact ? 'px-3.5 py-3' : 'p-4'} transition-colors hover:border-brand/30">
       <div class="flex items-start justify-between gap-2">
-        <p class="kpi-label flex min-w-0 items-center gap-1">
-          <span class="truncate">${label}</span>
+        <p class="kpi-label flex min-w-0 items-start gap-1">
+          <span class="min-w-0 flex-1 leading-tight">${label}</span>
           ${tooltip ? helpTip(tooltip) : ''}
         </p>
         ${iconName
-          ? html`<span class="grid shrink-0 place-items-center rounded-lg ${accent ? 'bg-white/75 text-brand' : 'bg-brand-light/60 text-brand-dark/70'} ${compact ? 'h-7 w-7' : 'h-8 w-8'}">
+          ? html`<span class="hidden shrink-0 place-items-center rounded-lg sm:grid ${accent ? 'bg-white/75 text-brand' : 'bg-brand-light/60 text-brand-dark/70'} ${compact ? 'h-7 w-7' : 'h-8 w-8'}">
               ${raw(icon(iconName, { size: compact ? 15 : 17 }))}
             </span>`
           : ''}

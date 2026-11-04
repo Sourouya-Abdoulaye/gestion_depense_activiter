@@ -194,11 +194,18 @@
   }
 
   .kpi-value {
-    @apply mt-1.5 text-[1.35rem] font-semibold leading-none text-ink tabular-nums sm:text-[1.5rem];
+    @apply mt-1.5 font-semibold leading-none text-ink tabular-nums;
+    font-size: clamp(0.98rem, 4.4vw, 1.2rem);
+  }
+
+  @media (min-width: 640px) {
+    .kpi-value {
+      font-size: 1.5rem;
+    }
   }
 
   .kpi-label {
-    @apply text-[0.65rem] font-semibold uppercase tracking-[0.07em] text-muted;
+    @apply text-[0.62rem] font-semibold uppercase tracking-[0.07em] text-muted sm:text-[0.65rem];
   }
 
   .nav-link {
@@ -361,6 +368,38 @@
   }
 
   /* Barre de filtres : champs pleine largeur. */
+  .filter-bar-default .filter-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: end;
+    gap: 0.65rem 0.75rem;
+  }
+
+  .filter-bar-default .filter-activity {
+    grid-column: 1 / -1;
+  }
+
+  .filter-bar-default .filter-period {
+    grid-column: 1;
+  }
+
+  .filter-bar-default .filter-info {
+    grid-column: 2;
+    justify-content: flex-end;
+    align-self: end;
+  }
+
+  .filter-bar-default .filter-custom:not(.hidden) {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .filter-bar-default .filter-custom:not(.hidden) > div {
+    min-width: 0;
+  }
+
   .filter-bar [class*='min-w-['] {
     min-width: 0;
     width: 100%;

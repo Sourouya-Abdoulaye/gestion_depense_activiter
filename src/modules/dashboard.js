@@ -70,7 +70,7 @@ function buildHero({ activity, period, actions }) {
           <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand text-lg font-bold text-white shadow-sm">${initial}</span>
           <div class="min-w-0">
             <p class="text-[0.62rem] font-bold uppercase tracking-[0.12em] text-brand">Tableau de bord</p>
-            <h1 class="mt-0.5 truncate text-xl font-semibold text-brand-dark sm:text-2xl">${activity ? activity.name : 'Votre activité'}</h1>
+            <h1 class="mt-0.5 line-clamp-2 text-lg font-semibold leading-tight text-brand-dark sm:text-2xl">${activity ? activity.name : 'Votre activité'}</h1>
             <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.7rem] text-muted">
               <span>${periodLabel(period, formatDate)}</span>
               <span class="h-1 w-1 rounded-full bg-line"></span>
@@ -109,7 +109,7 @@ function buildBudgetCard(activity, state) {
         <div><p class="text-[0.65rem] text-muted">Capital</p><p class="mt-0.5 text-sm font-semibold tabular-nums">${formatMoney(budget.initialCapital)}</p></div>
         <div><p class="text-[0.65rem] text-muted">Apports</p><p class="mt-0.5 text-sm font-semibold tabular-nums">${formatMoney(budget.contributions)}</p></div>
         <div><p class="text-[0.65rem] text-muted">Consommé</p><p class="mt-0.5 text-sm font-semibold tabular-nums text-warning">${formatMoney(budget.consumed)}</p></div>
-        <div><p class="text-[0.65rem] text-muted">Disponible</p><p class="mt-0.5 text-sm font-semibold tabular-nums">${formatMoney(budget.available)}</p></div>
+        <div><p class="text-[0.65rem] text-muted">Budget total</p><p class="mt-0.5 text-sm font-semibold tabular-nums">${formatMoney(budget.available)}</p></div>
       </div>
 
       <div class="mt-3">
@@ -129,7 +129,7 @@ function buildBudgetCard(activity, state) {
 function buildInsightCard({ ctx, kpis, alerts, overdueReceivables, overduePayables }) {
   let iconName = 'chart';
   let title = 'Votre marge en un mot';
-  let text = `Votre marge brute représente ${formatPercent(kpis.grossMargin / kpis.revenue)} du chiffre d’affaires.`;
+  let text = 'Suivez l’évolution de votre marge dans les rapports.';
   let actionLabel = 'Voir les rapports';
   let path = 'rapports';
 
@@ -157,6 +157,8 @@ function buildInsightCard({ ctx, kpis, alerts, overdueReceivables, overduePayabl
     text = 'Enregistrez une première vente pour suivre votre activité en temps réel.';
     actionLabel = 'Vendre maintenant';
     path = 'ventes';
+  } else {
+    text = `Votre marge brute représente ${formatPercent(kpis.grossMargin / kpis.revenue)} du chiffre d’affaires.`;
   }
 
   const card = element(html`
@@ -233,11 +235,11 @@ function paint(ctx, api) {
   ];
 
   const kpiSection = element('<section class="space-y-3"></section>');
-  const performanceGrid = element('<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"></div>');
+  const performanceGrid = element('<div class="grid grid-cols-2 gap-3 xl:grid-cols-4"></div>');
   performanceGrid.append(...performanceCards);
-  const flowGrid = element('<div class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"></div>');
+  const flowGrid = element('<div class="mt-3 grid grid-cols-2 gap-3 xl:grid-cols-4"></div>');
   flowGrid.append(...flowCards);
-  kpiSection.append(sectionHeading('Performance'), performanceGrid, flowGrid);
+  kpiSection.append(sectionHeading('Performance'), performanceGrid, sectionHeading('Flux & soldes'), flowGrid);
   wrapper.append(kpiSection);
 
   const alertItems = [];
@@ -264,13 +266,17 @@ function paint(ctx, api) {
   const series = buildSeries(state, filters, period);
   const hasData = series.revenue.some((value) => value !== 0) || series.expenses.some((value) => value !== 0);
   const { wrapper: box, canvas } = chartBox({ height: 300, label: 'Chiffre d’affaires et dépenses de la période' });
-  wrapper.append(
-    sectionCard({
-      title: 'Chiffre d’affaires et dépenses',
-      description: hasData ? undefined : 'Aucune donnée sur la période sélectionnée.',
-      content: box,
-    }),
-  );
+  const chartCard = sectionCard({
+    title: 'Chiffre d’affaires et dépenses',
+    description: hasData ? undefined : 'Aucune donnée sur la période sélectionnée.',
+    content: box,
+  });
+  const sideColumn = element('<div class="space-y-4"></div>');
+  if (activity) sideColumn.append(buildBudgetCard(activity, state));
+  sideColumn.append(buildInsightCard({ ctx, kpis, alerts, overdueReceivables, overduePayables }));
+  const mainGrid = element('<div class="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(290px,1fr)] xl:items-start"></div>');
+  mainGrid.append(chartCard, sideColumn);
+  wrapper.append(mainGrid);
 
   if (hasData) {
     api.defer(() => {

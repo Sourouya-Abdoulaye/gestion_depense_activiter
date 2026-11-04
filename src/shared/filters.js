@@ -22,11 +22,11 @@ export function filterBar({ activities = [], showActivity = true, lockedActivity
   const labelClass = compact ? 'sr-only' : 'label';
 
   const node = element(html`
-    <div class="${compact ? 'no-print filter-bar mb-3 flex flex-wrap items-center gap-2' : 'card card-pad no-print filter-bar mb-4'}">
-      <div class="${compact ? 'contents' : 'flex flex-wrap items-end gap-3'}">
+    <div class="${compact ? 'no-print filter-bar mb-3 flex flex-wrap items-center gap-2' : 'card card-pad no-print filter-bar filter-bar-default mb-4'}">
+      <div class="${compact ? 'contents' : 'filter-fields flex flex-wrap items-end gap-3'}">
         ${showActivity
           ? html`
-              <div class="${compact ? 'min-w-0' : 'min-w-[200px] flex-1'}">
+              <div class="${compact ? 'min-w-0' : 'filter-activity min-w-[200px] flex-1'}">
                 <label class="${labelClass}" for="filter-activity">Activité</label>
                 <select id="filter-activity" class="${controlClass}" ${lockedActivityId ? 'disabled' : ''}>
                   <option value="">Toutes les activités</option>
@@ -37,7 +37,7 @@ export function filterBar({ activities = [], showActivity = true, lockedActivity
             `
           : html`<input type="hidden" id="filter-activity" value="${view.activityId}" />`}
 
-        <div class="${compact ? 'min-w-0' : 'min-w-[170px]'}">
+        <div class="${compact ? 'min-w-0' : 'filter-period min-w-[170px]'}">
           <label class="${labelClass}" for="filter-period">Période</label>
           <select id="filter-period" class="${controlClass}">
             ${PERIOD_PRESETS.map(
@@ -46,7 +46,7 @@ export function filterBar({ activities = [], showActivity = true, lockedActivity
           </select>
         </div>
 
-        <div class="${compact ? 'flex flex-wrap items-center gap-2' : 'flex flex-1 flex-wrap items-end gap-3'} ${view.periodPreset === 'custom' ? '' : 'hidden'}" data-custom-range>
+        <div class="${compact ? 'flex flex-wrap items-center gap-2' : 'filter-custom flex flex-1 flex-wrap items-end gap-3'} ${view.periodPreset === 'custom' ? '' : 'hidden'}" data-custom-range>
           <div>
             <label class="${labelClass}" for="filter-from">Du</label>
             <input id="filter-from" type="date" class="${controlClass}" value="${view.customFrom || period.from}" />
@@ -57,7 +57,7 @@ export function filterBar({ activities = [], showActivity = true, lockedActivity
           </div>
         </div>
 
-        <div class="${compact ? 'hidden' : 'ml-auto flex items-center gap-2 text-xs text-muted'}">
+        <div class="${compact ? 'hidden' : 'filter-info ml-auto flex items-center gap-2 text-xs text-muted'}">
           <span class="hidden items-center gap-1 sm:flex">${raw(icon('clock', { size: 14 }))} <span data-period-label></span></span>
           <button type="button" class="btn-ghost btn-sm" data-reset-filters>Tout l’historique</button>
         </div>
